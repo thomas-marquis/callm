@@ -1,0 +1,6 @@
+*.safetensors
+*.o
+*.i
+*.s
+.python-version
+*.pth
