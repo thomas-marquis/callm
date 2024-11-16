@@ -2,15 +2,18 @@
 #define SAFETENSORS_C
 
 #include "safetensors.h"
+#include "types.h"
 #include "utils.h"
+#include <fcntl.h>
 #include <jansson.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
-#define HEADER_SIZE_PART_SIZE 8
+#define HEADER_SIZE_PART_SIZE sizeof(uint64_t)
 #define GET_JSON_OBJECT(root, key, obj)                                                                                \
     json_object_get(root, key);                                                                                        \
     if (obj == NULL)                                                                                                   \
@@ -18,6 +21,14 @@
         printerr("Error getting %s key from JSON\n", key);                                                             \
         return 1;                                                                                                      \
     }
+#define GET_JSON_OBJECT_PANIC(root, key, obj)                                                                          \
+    json_object_get(root, key);                                                                                        \
+    if (obj == NULL)                                                                                                   \
+    {                                                                                                                  \
+        printerr("Error getting %s key from JSON\n", key);                                                             \
+        exit(1);                                                                                                       \
+    }
+#define DEFAULT_HASH_TABLE_SIZE 16
 
 static int st_parse_header_layer(json_t *layer, struct st_header_layer *h)
 {
@@ -43,6 +54,10 @@ static int st_parse_header_layer(json_t *layer, struct st_header_layer *h)
     if (strcmp(dtype_str, "F32") == 0)
     {
         h->dtype = F32;
+    }
+    else if (strcmp(dtype_str, "BF16") == 0)
+    {
+        h->dtype = BF16;
     }
     else
     {
@@ -78,7 +93,77 @@ static int st_parse_header_layer(json_t *layer, struct st_header_layer *h)
     return 0;
 }
 
-static int st_parse_header(const char *header_content, st_header *h)
+st_header *new_st_header(const char *file_path)
+{
+    int fd = open(file_path, O_RDONLY);
+    if (fd == -1)
+    {
+        perror("Error opening file");
+        exit(1);
+    }
+
+    // Get the file size
+    struct stat st;
+    if (fstat(fd, &st) == -1)
+    {
+        perror("fstat");
+        close(fd);
+        exit(1);
+    }
+    size_t filesize = st.st_size;
+
+    // read header size
+    void *map = mmap(NULL, filesize, PROT_READ, MAP_SHARED, fd, 0);
+    if (map == MAP_FAILED)
+    {
+        printerr("Error mapping file");
+        close(fd);
+        exit(1);
+    }
+
+    uint64_t header_size;
+    memcpy(&header_size, map, HEADER_SIZE_PART_SIZE);
+    printf("Header size: %lu\n", header_size);
+    if (HEADER_SIZE_PART_SIZE + header_size > filesize)
+    {
+        fprintf(stderr, "Error: header size is larger than file size\n");
+        munmap(map, filesize);
+        close(fd);
+        exit(1);
+    }
+
+    // read header
+    char *header_content = (char *)malloc(header_size + 1);
+    CHECK_MALLOC_PANIC(header_content, "header content");
+    memcpy(header_content, (char *)map + HEADER_SIZE_PART_SIZE, header_size);
+    header_content[header_size] = '\0';
+    printf("Header content: %s\n", header_content);
+
+    // Initialize header
+    st_header *h = (st_header *)malloc(sizeof(st_header));
+    CHECK_MALLOC_PANIC(h, "new safetensors header");
+    h->map = NULL;
+    h->map_size = filesize;
+    h->header_size = header_size;
+    h->layer_table = new_hash_table(DEFAULT_HASH_TABLE_SIZE);
+
+    h->raw_content = (char *)malloc(strlen(header_content) + 1);
+    CHECK_MALLOC_PANIC(h->raw_content, "safetensors header content");
+    h->raw_content = strcpy(h->raw_content, header_content);
+
+    h->json_root = NULL;
+    if (st_header_parse(h, header_content))
+    {
+        printerr("Error parsing header\n");
+        exit(1);
+    }
+
+    h->map = map;
+
+    return h;
+}
+
+static int st_header_parse(st_header *h, const char *header_content)
 {
     json_error_t error;
     json_t *root = json_loads(header_content, 0, &error);
@@ -88,99 +173,111 @@ static int st_parse_header(const char *header_content, st_header *h)
         return 1;
     }
 
-    json_t *hidden_bias = GET_JSON_OBJECT(root, "hidden.bias", hidden_bias);
-    h->hidden_bias = (struct st_header_layer *)malloc(sizeof(struct st_header_layer));
-    CHECK_MALLOC(h->hidden_bias, "hidden bias");
-    if (st_parse_header_layer(hidden_bias, h->hidden_bias))
-    {
-        printerr("Error parsing hidden bias\n");
-        return 1;
-    }
-
-    json_t *hidden_weights = GET_JSON_OBJECT(root, "hidden.weight", hidden_weights);
-    h->hidden_weights = (struct st_header_layer *)malloc(sizeof(struct st_header_layer));
-    CHECK_MALLOC(h->hidden_weights, "hidden weights");
-    if (st_parse_header_layer(hidden_weights, h->hidden_weights))
-    {
-        printerr("Error parsing hidden weights\n");
-        return 1;
-    }
-
-    json_t *output_bias = GET_JSON_OBJECT(root, "output.bias", output_bias);
-    h->output_bias = (struct st_header_layer *)malloc(sizeof(struct st_header_layer));
-    CHECK_MALLOC(h->output_bias, "output bias");
-    if (st_parse_header_layer(output_bias, h->output_bias))
-    {
-        printerr("Error parsing output bias\n");
-        return 1;
-    }
-
-    json_t *output_weights = GET_JSON_OBJECT(root, "output.weight", output_weights);
-    h->output_weights = (struct st_header_layer *)malloc(sizeof(struct st_header_layer));
-    CHECK_MALLOC(h->output_weights, "output weights");
-    if (st_parse_header_layer(output_weights, h->output_weights))
-    {
-        printerr("Error parsing output weights\n");
-        return 1;
-    }
-
-    json_decref(root);
+    h->json_root = root;
 
     return 0;
 }
 
-int st_read_header(const int fd, st_header *h)
+matrix *st_load_matrix(const char *tensor_name, const st_header *header)
 {
-    // read header size
-    uint64_t *size_map = mmap(NULL, HEADER_SIZE_PART_SIZE, PROT_READ, MAP_SHARED, fd, 0);
-    if (size_map == MAP_FAILED)
+    // Get layer metadata
+    json_t *json_layer = GET_JSON_OBJECT_PANIC(header->json_root, tensor_name, json_layer);
+    st_header_layer *layer = (struct st_header_layer *)malloc(sizeof(struct st_header_layer));
+    CHECK_MALLOC_PANIC(layer, tensor_name);
+    if (st_parse_header_layer(json_layer, layer))
     {
-        printerr("Error mapping file");
-        close(fd);
+        printerr("Error parsing tensor header %s\n", tensor_name);
+        exit(1);
+    }
+
+    // Check is a matrix
+    if (layer->shape_size != 2)
+    {
+        printerr("Error: tensor %s is not a matrix\n", tensor_name);
+        exit(1);
+    }
+
+    // Get data from map
+    matrix *m = new_matrix(layer->shape[0], layer->shape[1]);
+
+    int nb_elements = layer->shape[0] * layer->shape[1];
+    int start_index = HEADER_SIZE_PART_SIZE + header->header_size + layer->data_offset[0];
+
+    if (layer->dtype == F32)
+    {
+        printf("Loading float32 matrix\n");
+
+        char *buff = (char *)malloc(nb_elements * sizeof(float));
+        CHECK_MALLOC_PANIC(buff, "tmp matrix data buffer");
+        memcpy(buff, (char *)header->map + start_index, nb_elements * sizeof(float));
+
+        float *data = (float *)malloc(nb_elements * sizeof(float));
+        CHECK_MALLOC_PANIC(data, "matrix float data");
+        memcpy(data, buff, nb_elements * sizeof(float));
+        free(buff);
+
+        m->data = data;
+    }
+    else if (layer->dtype == BF16)
+    {
+        printf("Loading bf16 matrix\n");
+
+        char *buff = (char *)malloc(nb_elements * sizeof(bf16));
+        CHECK_MALLOC_PANIC(buff, "tmp matrix data buffer");
+        memcpy(buff, (char *)header->map + start_index, nb_elements * sizeof(bf16));
+
+        bf16 *data = (bf16 *)malloc(nb_elements * sizeof(bf16));
+        CHECK_MALLOC_PANIC(data, "matrix bf16 data");
+        memcpy(data, buff, nb_elements * sizeof(bf16));
+        free(buff);
+
+        // convert to float
+        float *f_data = (float *)malloc(nb_elements * sizeof(float));
+        CHECK_MALLOC_PANIC(f_data, "matrix float data");
+
+        for (int i = 0; i < nb_elements; i++)
+        {
+            // printf("bf16: %d\n", data[i]); // TODO debug
+            f_data[i] = bf16_to_float(data[i]);
+            // printf("float: %f\n", f_data[i]); // TODO debug
+        }
+
+        m->data = f_data;
+        free(data);
+    }
+    else
+    {
+        printerr("Error: unsupported dtype %d\n", layer->dtype);
+        exit(1);
+    }
+
+    return m;
+}
+
+int st_get_layer_header_by_name(const st_header *header, const char *layer_name, st_header_layer *layer)
+{
+    HashTableNode *node = hash_table_get(header->layer_table, layer_name);
+    if (node == NULL)
+    {
+
+        printerr("Error: layer '%s' not found in header\n", layer_name);
         return 1;
     }
+    layer = (st_header_layer *)node->value;
+    return 0;
+}
 
-    uint64_t header_size = *size_map;
-    printf("Header size: %lu\n", header_size);
-
-    if (munmap(size_map, HEADER_SIZE_PART_SIZE) == -1)
+int st_header_free(st_header *h)
+{
+    hash_table_free(h->layer_table);
+    free(h->raw_content);
+    json_decref(h->json_root);
+    if (munmap(h->map, h->map_size))
     {
-        printerr("Error unmapping file");
+        printerr("Error unmapping safetensors file\n");
         return 1;
     }
-
-    // read header
-    char *header_map = mmap(NULL, header_size, PROT_READ, MAP_SHARED, fd, 0);
-    if (header_map == MAP_FAILED)
-    {
-        printerr("Error mapping file");
-        close(fd);
-        return 1;
-    }
-
-    char *header_content = (char *)malloc(header_size + 1);
-    CHECK_MALLOC(header_content, "header content");
-
-    printf("Header content: ");
-    for (int i = 0; i < header_size; i++)
-    {
-        header_content[i] = header_map[i + HEADER_SIZE_PART_SIZE];
-    }
-    header_content[header_size] = '\0';
-    printf("Header content: %s\n", header_content);
-
-    if (munmap(header_map, header_size) == -1)
-    {
-        printerr("Error unmapping file");
-        return 1;
-    }
-
-    // parse header content
-    if (st_parse_header(header_content, h))
-    {
-        return 1;
-    }
-    free(header_content);
+    free(h);
     return 0;
 }
 

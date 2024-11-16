@@ -66,4 +66,27 @@ int tensor_mult(tensor_f32 *a, tensor_f32 *b, tensor_f32 *c)
     return 0;
 }
 
+int tensor_transpose(tensor_f32 *a, tensor_f32 *b)
+{
+    if (a->shape->shape_size != 2 || b->shape->shape_size != 2)
+    {
+        printerr("Error: invalid shape size for tensor transpose: only 2x2 tensors supported\n");
+        return 1;
+    }
+    if (a->shape->shape[0] != b->shape->shape[1] || a->shape->shape[1] != b->shape->shape[0])
+    {
+        printerr("Error: invalid shape for tensor transpose: %dx%d -> %dx%d\n", a->shape->shape[0], a->shape->shape[1],
+                 b->shape->shape[0], b->shape->shape[1]);
+        return 1;
+    }
+    for (int i = 0; i < a->shape->shape[0]; i++)
+    {
+        for (int j = 0; j < a->shape->shape[1]; j++)
+        {
+            b->data[j * b->shape->shape[1] + i] = a->data[i * a->shape->shape[1] + j];
+        }
+    }
+    return 0;
+}
+
 #endif

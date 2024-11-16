@@ -4,7 +4,7 @@ struct matrix
 {
     int r;
     int c;
-    float_t *data;
+    float *data;
 };
 typedef struct matrix matrix;
 
@@ -16,13 +16,24 @@ typedef struct matrix matrix;
  */
 matrix *new_matrix(int r, int c);
 
+/**
+ * @brief Frees the memory allocated for a matrix object.
+ *
+ * This function releases all resources associated with a `matrix` object,
+ * including the data array and the matrix structure itself.
+ *
+ * @param M A pointer to the `matrix` object to be freed.
+ * @return Returns 0 on success.
+ */
+int matrix_free(matrix *M);
+
 /*
  * Function: fill_matrix
  * --------------------
  *
  *  Fills the matrix with data
  */
-int fill_matrix(matrix *M, float_t *data);
+int fill_matrix(matrix *M, float *data);
 
 /*
  * Function: matmult
@@ -38,7 +49,7 @@ int matmult(const matrix *A, const matrix *B, matrix *C);
  *
  *  Prints the matrix
  */
-void print_matrix(const matrix *M);
+void matrix_print(const matrix *M);
 
 /*
  * Function: delete_matrix

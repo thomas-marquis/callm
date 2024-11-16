@@ -2,32 +2,23 @@
 #include "utils.h"
 #include <fcntl.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
 int main()
 {
-    int fd;
-    char *file_path = "model2.safetensors";
+    // char *file_path = "model2.safetensors";
+    char *file_path = "my_tensor.safetensors";
+    st_header *h = new_st_header(file_path);
 
-    fd = open(file_path, O_RDONLY);
-    if (fd == -1)
-    {
-        perror("Error opening file");
-        return 1;
-    }
+    matrix *M = st_load_matrix("my_tensor", h);
+    matrix_print(M);
+    matrix_free(M);
 
-    st_header *h = (st_header *)malloc(sizeof(st_header));
-    CHECK_MALLOC(h, "base header");
+    matrix *N = st_load_matrix("my_tensor_float32", h);
+    matrix_print(N);
+    matrix_free(N);
 
-    if (st_read_header(fd, h))
-    {
-        return 1;
-    }
-
-    free(h);
-    close(fd);
+    st_header_free(h);
     return 0;
 }
