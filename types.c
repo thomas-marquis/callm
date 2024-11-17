@@ -14,9 +14,9 @@
 float bf16_to_float(bf16 b)
 {
     // Extraction of bfloat16 components
-    bf16 sign = (b >> 15) & 0x1;      // 1 bit for the sign
-    bf16 exponent = (b >> 10) & 0x1F; // 5 bits for the exponent
-    bf16 mantissa = b & 0x3FF;        // 10 bits for the mantissa
+    bf16 sign = (b >> 15) & 0x1;     // 1 bit for the sign      0000 0001
+    bf16 exponent = (b >> 7) & 0xFF; // 8 bits for the exponent 1111 1111
+    bf16 mantissa = b & 0x7F;        // 7 bits for the mantissa 0111 1111
 
     // If the exponent is zero, we have a zero or a denormalized number
     if (exponent == 0)
@@ -46,9 +46,9 @@ float bf16_to_float(bf16 b)
     }
 
     // Calculate the new exponent for float32
-    uint32_t new_sign = sign << 31;                               // Sign on bit 31
-    uint32_t new_exponent = ((exponent - 15 + 127) & 0xFF) << 23; // Adjusted and shifted exponent
-    uint32_t new_mantissa = (mantissa & 0x3FF) << 13;             // Extended mantissa over 23 bits
+    uint32_t new_sign = sign << 31;         // Sign on bit 31
+    uint32_t new_exponent = exponent << 23; // Shifted exponent
+    uint32_t new_mantissa = mantissa << 16; // Extended mantissa
 
     // Construct the integer representing the float32
     uint32_t float_bits = new_sign | new_exponent | new_mantissa;
