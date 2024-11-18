@@ -6,3 +6,5 @@
 *.pth
 /callm
 __pycache__
+/build/*
+!/build/.keep

@@ -1,6 +1,8 @@
 #ifndef SAFETENSORS_H
 #define SAFETENSORS_H
 
+#include "lib/errors.h"
+#include "lib/hash_table.h"
 #include "matrix.h"
 #include "types.h"
 #include <jansson.h>
@@ -11,35 +13,33 @@ enum Dtype
     BF16 = 2,
 };
 
-struct st_header_layer
+struct SafetensorsLayer
 {
     enum Dtype dtype;
     int *shape;
     int shape_size;
     int *data_offset;
 };
-typedef struct st_header_layer st_header_layer;
+typedef struct SafetensorsLayer safetensors_layer_t;
 
-struct st_header
+struct Safetensors
 {
     char *raw_content;
-    HashTable *layer_table;
+    hash_table_t *layer_table;
     json_t *json_root;
     void *map;
     int map_size;
     uint64_t header_size;
 };
-typedef struct st_header st_header;
+typedef struct Safetensors safetensors_t;
 
-int st_read_header(const int fd, st_header *h);
+matrix_t *Safetensors_load_matrix(const char *tensor_name, const safetensors_t *header);
 
-int st_get_layer_header(const void *map, const char *layer_name, st_header_layer *layer);
+status_t Safetensors_get_layer_by_name(const safetensors_t *header, const char *layer_name, safetensors_layer_t *layer);
 
-matrix *st_load_matrix(const char *tensor_name, const st_header *header);
+static status_t Safetensors_parse(safetensors_t *h, const char *header_content);
 
-int st_get_layer_header_by_name(const st_header *header, const char *layer_name, st_header_layer *layer);
-
-static int st_header_parse(st_header *h, const char *header_content);
+static status_t Safetensors_print(safetensors_t *h);
 
 /**
  * @brief Creates a new st_header object by reading and parsing the header from a file.
@@ -50,7 +50,7 @@ static int st_header_parse(st_header *h, const char *header_content);
  * @param file_path The path to the file to be read.
  * @return A pointer to the newly created `st_header` object.
  */
-st_header *new_st_header(const char *file_path);
+safetensors_t *Safetensors_new(const char *file_path);
 
 /**
  * @brief Frees the memory allocated for an st_header object.
@@ -59,8 +59,10 @@ st_header *new_st_header(const char *file_path);
  * including hash tables, raw content, and JSON objects.
  *
  * @param h A pointer to the `st_header` object to be freed.
- * @return Returns 0 on success.
+ * @return status_t OK if the header was successfully freed, ERROR otherwise.
  */
-int st_header_free(st_header *h);
+status_t Safetensors_free(safetensors_t *h);
+
+status_t SafetensorsLayer_free(safetensors_layer_t *layer);
 
 #endif

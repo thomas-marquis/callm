@@ -1,12 +1,13 @@
+#include "lib/errors.h"
 #include <math.h>
 
-struct matrix
+struct Matrix
 {
     int r;
     int c;
     float *data;
 };
-typedef struct matrix matrix;
+typedef struct Matrix matrix_t;
 
 /*
  * Function: new_matrix
@@ -14,7 +15,7 @@ typedef struct matrix matrix;
  *
  *  Creates a new matrix with r rows and c columns
  */
-matrix *new_matrix(int r, int c);
+matrix_t *Matrix_new(int r, int c);
 
 /**
  * @brief Frees the memory allocated for a matrix object.
@@ -23,17 +24,20 @@ matrix *new_matrix(int r, int c);
  * including the data array and the matrix structure itself.
  *
  * @param M A pointer to the `matrix` object to be freed.
- * @return Returns 0 on success.
+ * @return status_t OK if the free was successful, ERROR otherwise.
  */
-int matrix_free(matrix *M);
+status_t Matrix_free(matrix_t *M);
 
-/*
- * Function: fill_matrix
- * --------------------
+/**
+ * @brief Function: fill_matrix
  *
- *  Fills the matrix with data
+ * Fills the matrix with data
+ *
+ * @param M: matrix to fill
+ * @param data: data to fill the matrix with
+ * @return status_t OK if the fill was successful, ERROR otherwise.
  */
-int fill_matrix(matrix *M, float *data);
+status_t Matrix_fill(matrix_t *M, float *data);
 
 /*
  * Function: matmult
@@ -41,7 +45,7 @@ int fill_matrix(matrix *M, float *data);
  *
  *  Multiplies two matrices A and B and returns the result matrix C
  */
-int matmult(const matrix *A, const matrix *B, matrix *C);
+status_t Matrix_dot(const matrix_t *A, const matrix_t *B, matrix_t *C);
 
 /*
  * Function: print_matrix
@@ -49,7 +53,7 @@ int matmult(const matrix *A, const matrix *B, matrix *C);
  *
  *  Prints the matrix
  */
-void matrix_print(const matrix *M);
+void Matrix_print(const matrix_t *M);
 
 /*
  * Function: delete_matrix

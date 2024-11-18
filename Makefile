@@ -1,5 +1,5 @@
 PROGRAM = callm
-SOURCES = main.c safetensors.c tensor.c types.c matrix.c
+SOURCES = main.c safetensors.c types.c matrix.c tokenizer/vocab.c lib/hash_table.c
 OBJECTS = $(SOURCES:.c=.o)
 ASM = $(SOURCES:.c=.s)
 I_FILES = $(SOURCES:.c=.i)

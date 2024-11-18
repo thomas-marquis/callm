@@ -1,27 +1,31 @@
+#ifndef MATRIX_C
+#define MATRIX_C
+
 #include "matrix.h"
+#include "lib/errors.h"
 #include <immintrin.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #define BLOCK_SIZE 16
 
-matrix *new_matrix(int r, int c)
+matrix_t *Matrix_new(int r, int c)
 {
-    matrix *M = (matrix *)malloc(sizeof(matrix));
+    matrix_t *M = (matrix_t *)malloc(sizeof(matrix_t));
     M->r = r;
     M->c = c;
     M->data = NULL;
     return M;
 }
 
-int matrix_free(matrix *M)
+status_t Matrix_free(matrix_t *M)
 {
     free(M->data);
     free(M);
-    return 0;
+    return OK;
 }
 
-int fill_matrix(matrix *M, float *data)
+status_t Matrix_fill(matrix_t *M, float *data)
 {
     for (int i = 0; i < M->r; i++)
     {
@@ -30,15 +34,15 @@ int fill_matrix(matrix *M, float *data)
             M->data[i * M->c + j] = data[i * M->c + j];
         }
     }
-    return 0;
+    return OK;
 }
 
-int matmult(const matrix *A, const matrix *B, matrix *C)
+status_t Matrix_dot(const matrix_t *A, const matrix_t *B, matrix_t *C)
 {
     if (A->c != B->r)
     {
         printf("Error: Matrix dimensions do not match\n");
-        return 1;
+        return ERROR;
     }
 
     for (int a_row = 0; a_row < A->r; a_row++)
@@ -52,10 +56,10 @@ int matmult(const matrix *A, const matrix *B, matrix *C)
             }
         }
     }
-    return 0;
+    return OK;
 }
 
-void matrix_print(const matrix *M)
+void Matrix_print(const matrix_t *M)
 {
     printf("M(%dx%d)=\n", M->r, M->c);
     for (int i = 0; i < M->r; i++)
@@ -147,3 +151,5 @@ void matrix_print(const matrix *M)
 //                      : "r"(A->data), "r"(B->data), "r"(C->data), "r"(C->c)
 //                      : "rsi", "r8", "r9", "r10", "ymm0", "ymm1", "ymm2", "memory");
 // }
+
+#endif // !MATRIX_C

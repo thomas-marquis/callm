@@ -1,0 +1,4 @@
+#ifndef TOKENIZER_VOCAB_C
+#define TOKENIZER_VOCAB_C
+
+#endif // !TOKENIZER_VOCAB_C
