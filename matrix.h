@@ -1,3 +1,6 @@
+#ifndef MATRIX_H
+#define MATRIX_H
+
 #include "lib/errors.h"
 #include <math.h>
 
@@ -55,6 +58,10 @@ status_t Matrix_dot(const matrix_t *A, const matrix_t *B, matrix_t *C);
  */
 void Matrix_print(const matrix_t *M);
 
+matrix_t *Matrix_slice_line(const matrix_t *M, int from, int nb);
+
+matrix_t *Matrix_slice_column(const matrix_t *M, int from, int nb);
+
 /*
  * Function: delete_matrix
  * --------------------
@@ -62,3 +69,4 @@ void Matrix_print(const matrix_t *M);
  *  Deletes the matrix and frees the memory
  */
 // int delete_matrix(matrix *M);
+#endif // MATRIX_H

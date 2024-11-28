@@ -39,7 +39,10 @@ status_t Safetensors_get_layer_by_name(const safetensors_t *header, const char *
 
 static status_t Safetensors_parse(safetensors_t *h, const char *header_content);
 
-static status_t Safetensors_print(safetensors_t *h);
+/**
+ * @brief Prints the content of an st_header object.
+ */
+status_t Safetensors_print(safetensors_t *h);
 
 /**
  * @brief Creates a new st_header object by reading and parsing the header from a file.

@@ -8,3 +8,5 @@
 __pycache__
 /build/*
 !/build/.keep
+/graph.dot*
+/graph.png

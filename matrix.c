@@ -3,6 +3,7 @@
 
 #include "matrix.h"
 #include "lib/errors.h"
+#include "lib/logging.h"
 #include <immintrin.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,6 +58,42 @@ status_t Matrix_dot(const matrix_t *A, const matrix_t *B, matrix_t *C)
         }
     }
     return OK;
+}
+
+matrix_t *Matrix_slice_line(const matrix_t *M, int from, int nb)
+{
+    if (from + nb > M->r)
+    {
+        log_error("Error: slice out of bounds");
+        return NULL;
+    }
+    matrix_t *M_slice = Matrix_new(nb, M->c);
+    for (int i = 0; i < nb; i++)
+    {
+        for (int j = 0; j < M->c; j++)
+        {
+            M_slice->data[i * M->c + j] = M->data[(from + i) * M->c + j];
+        }
+    }
+    return M_slice;
+}
+
+matrix_t *Matrix_slice_column(const matrix_t *M, int from, int nb)
+{
+    if (from + nb > M->c)
+    {
+        log_error("Error: slice out of bounds");
+        return NULL;
+    }
+    matrix_t *M_slice = Matrix_new(M->r, nb);
+    for (int i = 0; i < M->r; i++)
+    {
+        for (int j = 0; j < nb; j++)
+        {
+            M_slice->data[i * nb + j] = M->data[i * M->c + from + j];
+        }
+    }
+    return M_slice;
 }
 
 void Matrix_print(const matrix_t *M)

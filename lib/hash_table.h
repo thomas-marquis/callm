@@ -92,4 +92,6 @@ status_t hash_table_delete(hash_table_t *hash_table, const char *key);
  */
 status_t hash_table_free(hash_table_t *hash_table);
 
+char **hash_table_keys(hash_table_t *hash_table);
+
 #endif // !LIB_HASH_TABLE_H

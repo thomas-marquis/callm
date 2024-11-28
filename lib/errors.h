@@ -19,13 +19,13 @@
 #define CHECK_STATUS(status, msg, ...)                                                                                 \
     if (status != OK)                                                                                                  \
     {                                                                                                                  \
-        printerr(msg, __VA_ARGS__);                                                                                    \
+        printf(stderr, msg, __VA_ARGS__);                                                                              \
         return ERROR;                                                                                                  \
     }
 #define CHECK_STATUS_PANIC(status, msg, ...)                                                                           \
     if (status != OK)                                                                                                  \
     {                                                                                                                  \
-        printerr(msg, __VA_ARGS__);                                                                                    \
+        printf(stderr, msg, __VA_ARGS__);                                                                              \
         exit(1);                                                                                                       \
     }
 

@@ -3,6 +3,7 @@
 
 #include "safetensors.h"
 #include "lib/errors.h"
+#include "lib/json.h"
 #include "types.h"
 #include <fcntl.h>
 #include <jansson.h>
@@ -14,20 +15,6 @@
 #include <unistd.h>
 
 #define HEADER_SIZE_PART_SIZE sizeof(uint64_t)
-#define GET_JSON_OBJECT(root, key, obj)                                                                                \
-    json_object_get(root, key);                                                                                        \
-    if (obj == NULL)                                                                                                   \
-    {                                                                                                                  \
-        printerr("Error getting %s key from JSON\n", key);                                                             \
-        return 1;                                                                                                      \
-    }
-#define GET_JSON_OBJECT_PANIC(root, key, obj)                                                                          \
-    json_object_get(root, key);                                                                                        \
-    if (obj == NULL)                                                                                                   \
-    {                                                                                                                  \
-        printerr("Error getting %s key from JSON\n", key);                                                             \
-        exit(1);                                                                                                       \
-    }
 #define DEFAULT_HASH_TABLE_SIZE 16
 
 static status_t SafetensorsLayer_parse(json_t *layer, struct SafetensorsLayer *h)
@@ -163,12 +150,11 @@ safetensors_t *Safetensors_new(const char *file_path)
     CHECK_STATUS_PANIC(Safetensors_parse(h, header_content), "Error parsing header\n", NULL);
 
     h->map = map;
-    Safetensors_print(h);
 
     return h;
 }
 
-static status_t Safetensors_print(safetensors_t *h)
+status_t Safetensors_print(safetensors_t *h)
 {
     char *key = NULL;
     void *value = NULL;

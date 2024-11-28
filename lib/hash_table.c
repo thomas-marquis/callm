@@ -161,4 +161,16 @@ status_t hash_table_free(hash_table_t *hash_table)
     return OK;
 }
 
+char **hash_table_keys(hash_table_t *hash_table)
+{
+    char **keys = (char **)malloc(sizeof(char *) * hash_table->count);
+    for (int i = 0; i < hash_table->count; i++)
+    {
+        hash_table_node_t *temp = hash_table->table[i];
+        printf("COUCOU : key=%p\n", temp);
+        keys[i] = temp->key;
+    }
+    return keys;
+}
+
 #endif // !LIB_HASH_TABLE_C
