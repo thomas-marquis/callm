@@ -1,7 +1,5 @@
-#ifndef LINEAR_MAP_C
-#define LINEAR_MAP_C
-
 #include "linear_map.h"
+#include "errors.h"
 #include "logging.h"
 #include <assert.h>
 #include <stdlib.h>
@@ -9,9 +7,9 @@
 
 #define LINEAR_MAP_DEFAULT_CAPACITY 16
 
-static linear_map_item_t *LineraMapItem_new(char *key, void *value, int value_size)
+static LinearMapItem *LineraMapItem_new(char *key, void *value, int value_size)
 {
-    linear_map_item_t *item = (linear_map_item_t *)malloc(sizeof(linear_map_item_t));
+    LinearMapItem *item = (LinearMapItem *)malloc(sizeof(LinearMapItem));
     (*item).key = key;
     (*item).value = value;
     (*item).value_size = value_size;
@@ -24,7 +22,7 @@ static linear_map_item_t *LineraMapItem_new(char *key, void *value, int value_si
  * @param map The linear map to resize.
  * @return status_t OK if the resize was successful, ERROR otherwise.
  */
-static status_t LinearMap_resize(linear_map_t *map)
+static CallmStatusCode LinearMap_resize(LinearMap *map)
 {
     if (map->size < map->capacity)
     {
@@ -32,7 +30,7 @@ static status_t LinearMap_resize(linear_map_t *map)
     }
 
     int new_capacity = map->capacity * 2;
-    linear_map_item_t *new_items = (linear_map_item_t *)malloc(sizeof(linear_map_item_t) * new_capacity);
+    LinearMapItem *new_items = (LinearMapItem *)malloc(sizeof(LinearMapItem) * new_capacity);
     CHECK_MALLOC(new_items, "new linear map items");
 
     for (int i = 0; i < map->size; i++)
@@ -45,16 +43,16 @@ static status_t LinearMap_resize(linear_map_t *map)
     return OK;
 }
 
-linear_map_t *LinearMap_new()
+LinearMap *LinearMap_new()
 {
-    linear_map_t *map = (linear_map_t *)malloc(sizeof(linear_map_t));
+    LinearMap *map = (LinearMap *)malloc(sizeof(LinearMap));
     (*map).size = 0;
     (*map).capacity = LINEAR_MAP_DEFAULT_CAPACITY;
-    (*map).items = (linear_map_item_t *)malloc(sizeof(linear_map_item_t) * LINEAR_MAP_DEFAULT_CAPACITY);
+    (*map).items = (LinearMapItem *)malloc(sizeof(LinearMapItem) * LINEAR_MAP_DEFAULT_CAPACITY);
     return map;
 }
 
-void LinearMap_free(linear_map_t *map)
+void LinearMap_free(LinearMap *map)
 {
     if (map == NULL)
     {
@@ -72,20 +70,20 @@ void LinearMap_free(linear_map_t *map)
     free(map);
 }
 
-status_t LinearMap_insert(linear_map_t *map, char *key, void *value, int value_size)
+CallmStatusCode LinearMap_insert(LinearMap *map, char *key, void *value, int value_size)
 {
     assert(map != NULL && "map must not be NULL to insert item into");
 
     if (LinearMap_resize(map) != OK)
     {
-        log_error("Failed to insert item into linear map: resize failed");
+        LOG_ERROR("Failed to insert item into linear map: resize failed");
         return ERROR;
     }
 
-    linear_map_item_t *item = LineraMapItem_new(key, value, value_size);
+    LinearMapItem *item = LineraMapItem_new(key, value, value_size);
     if (item == NULL)
     {
-        log_error("Failed to insert item into linear map: failed to create new item");
+        LOG_ERROR("Failed to insert item into linear map: failed to create new item");
         return ERROR;
     }
 
@@ -95,7 +93,7 @@ status_t LinearMap_insert(linear_map_t *map, char *key, void *value, int value_s
     return OK;
 }
 
-void *LinearMap_get(linear_map_t *map, char *key)
+void *LinearMap_get(LinearMap *map, char *key)
 {
     assert(map != NULL && "map must not be NULL to get item from");
     for (int i = 0; i < map->size; i++)
@@ -107,5 +105,3 @@ void *LinearMap_get(linear_map_t *map, char *key)
     }
     return NULL;
 }
-
-#endif // !#ifndef LINEAR_MAP_C

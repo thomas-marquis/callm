@@ -1,7 +1,4 @@
-#ifndef TYPES_C
-#define TYPES_C
-
-#include "types.h"
+#include "./bf16.h"
 #include <math.h>
 #include <stdint.h>
 #include <string.h>
@@ -54,5 +51,3 @@ float bf16_to_float(bf16_t b)
 
     return result;
 }
-
-#endif

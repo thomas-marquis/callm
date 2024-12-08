@@ -1,13 +1,12 @@
-#ifndef TOKENIZER_C
-#define TOKENIZER_C
-
-#include "tokenizer.h"
-#include "../lib/errors.h"
-#include "../lib/json.h"
-#include "../lib/logging.h"
+#include "./tokenizer.h"
+#include "../utils/dynamic_list.h"
+#include "../utils/errors.h"
+#include "../utils/json.h"
+#include "../utils/logging.h"
 #include <assert.h>
 #include <fcntl.h>
 #include <jansson.h>
+#include <pcre2.h>
 #include <regex.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -17,8 +16,8 @@
 #define ENCODER_HASH_TABLE_DEFAULT_SIZE 256
 #define REG_MAX_GROUP_MATCHES 10 * 2
 
-static const char *TOKENIZATION_REGEXP =
-    "(?i:(?:'s|'t|'re|'ve|'m|'ll|'d))|[^\r\n\\w]?\\w+|\\d{1,3}| ?[^\\s\\w]+[\r\n]*|\\s*[\r\n]+|\\s+(?!\\S)|\\s+";
+static PCRE2_SPTR TOKENIZATION_REGEXP = (PCRE2_SPTR) "(?i:(?:'s|'t|'re|'ve|'m|'ll|'d))|[^\r\n\\w]?\\w+|\\d{1,3}| "
+                                                     "?[^\\s\\w]+[\r\n]*|\\s*[\r\n]+|\\s+(?!\\S)|\\s+";
 
 static char *load_file_content(char *file_path)
 {
@@ -49,23 +48,20 @@ static char *load_file_content(char *file_path)
     return content;
 }
 
-static status_t parse_tokenizer_file(char *content, linear_map_t *encoder)
+static CallmStatusCode parse_tokenizer_file(char *content, LinearMap *encoder)
 {
     json_error_t error;
     json_t *root = json_loads(content, 0, &error);
     if (!root)
     {
-        char *msg;
-        asprintf(&msg, "JSON error: on line %d: %s\n", error.line, error.text);
-        log_error(msg);
-        free(msg);
+        LOGF_ERROR("JSON error: on line %d: %s", error.line, error.text);
         return ERROR;
     }
 
     json_t *model_object = GET_JSON_OBJECT(root, "model", model_object);
     json_t *vocab_object = GET_JSON_OBJECT(model_object, "vocab", vocab_object);
 
-    log_info("Parsing vocab object");
+    LOG_INFO("Parsing vocab object");
     char *key = NULL;
     void *value = NULL;
     int i = 0;
@@ -73,73 +69,68 @@ static status_t parse_tokenizer_file(char *content, linear_map_t *encoder)
     {
         if (LinearMap_insert(encoder, key, value, sizeof(value)) != OK)
         {
-            char *msg;
-            asprintf(&msg, "Failed to insert vocab item at index %d", i);
-            log_error(msg);
-            free(msg);
+            LOGF_ERROR("Failed to insert vocab item at index %d", i);
             return ERROR;
         }
         i++;
     }
 
-    char *msg;
-    asprintf(&msg, "Parsed %d items from vocab object", encoder->size);
-    log_info(msg);
-    free(msg);
+    LOGF_INFO("Parsed %d items from vocab object", encoder->size);
 
     return OK;
 }
 
 struct get_regexp_res
 {
-    pcre *re;
-    status_t status;
+    pcre2_code *re;
+    CallmStatusCode status;
 };
 
 static struct get_regexp_res get_regex()
 {
-    const char *error;
-    int erroffset;
-    pcre *re;
+    int error;
+    PCRE2_SIZE erroffset;
+    pcre2_code *re;
 
     // Compile the regex pattern
-    re = pcre_compile(TOKENIZATION_REGEXP, PCRE_UTF8 | PCRE_CASELESS, &error, &erroffset, NULL);
+    re =
+        pcre2_compile(TOKENIZATION_REGEXP, PCRE2_ZERO_TERMINATED, PCRE2_CASELESS | PCRE2_UTF, &error, &erroffset, NULL);
     if (re == NULL)
     {
-        printf("PCRE compilation failed at offset %d: %s\n", erroffset, error);
+        LOGF_ERROR("PCRE compilation failed at offset %zu: %d", erroffset, error);
         return (struct get_regexp_res){NULL, ERROR};
     }
     return (struct get_regexp_res){re, OK};
 }
 
-tokenizer_t *Tokenizer_new(char *file_path)
+Tokenizer *Tokenizer_new(char *file_path)
 {
-    log_info("Creating tokenizer from file");
+    LOG_INFO("Creating tokenizer from file");
     char *json_content = load_file_content(file_path);
 
-    tokenizer_t *tokenizer = (tokenizer_t *)malloc(sizeof(tokenizer_t));
+    Tokenizer *tokenizer = (Tokenizer *)malloc(sizeof(Tokenizer));
     tokenizer->decoder = LinearMap_new();
     tokenizer->encoder = LinearMap_new();
 
-    log_info("Creating encoder from json");
+    LOG_INFO("Creating encoder from json");
     if (parse_tokenizer_file(json_content, tokenizer->encoder) != OK)
     {
-        log_error("Fail to parse encoder from json");
+        LOG_ERROR("Fail to parse encoder from json");
         exit(1);
     }
 
-    log_info("Encoder created. Creating decoder");
+    LOG_INFO("Encoder created. Creating decoder");
     for (int i = 0; i < tokenizer->encoder->size; i++)
     {
-        linear_map_item_t *item = &tokenizer->encoder->items[i];
+        LinearMapItem *item = &tokenizer->encoder->items[i];
         LinearMap_insert(tokenizer->decoder, item->value, item->key, sizeof(item->key));
     }
 
-    log_info("Decoder created. Compiling ordinary tokens regex");
+    LOG_INFO("Decoder created. Compiling ordinary tokens regex");
     struct get_regexp_res res = get_regex();
     if (res.status != OK)
     {
-        log_error("Failed to compile ordinary regex");
+        LOG_ERROR("Failed to compile ordinary regex");
         exit(1);
     }
     tokenizer->ordinary_regex = res.re;
@@ -151,7 +142,7 @@ tokenizer_t *Tokenizer_new(char *file_path)
     return tokenizer;
 }
 
-status_t Tokenizer_free(tokenizer_t *tokenizer)
+CallmStatusCode Tokenizer_free(Tokenizer *tokenizer)
 {
     if (tokenizer->decoder != NULL)
     {
@@ -163,79 +154,19 @@ status_t Tokenizer_free(tokenizer_t *tokenizer)
     }
     if (tokenizer->ordinary_regex != NULL)
     {
-        pcre_free(tokenizer->ordinary_regex);
+        pcre2_code_free(tokenizer->ordinary_regex);
     }
     return OK;
 }
 
-//// TODO: To move in a separate file
-
-typedef struct
-{
-    void *data;
-    size_t item_size;
-    size_t size;
-    size_t capacity;
-} dynamicList_t;
-
-dynamicList_t *DynamicList_new(size_t item_size)
-{
-    dynamicList_t *list = (dynamicList_t *)malloc(sizeof(dynamicList_t));
-    list->data = NULL;
-    list->size = 0;
-    list->capacity = 10; // TODO magic  number
-    list->item_size = item_size;
-    list->data = (void *)malloc(list->capacity * sizeof(item_size));
-    return list;
-}
-
-status_t DynamicList_append(dynamicList_t *list, void *item)
-{
-    if (list->size == list->capacity)
-    {
-        list->capacity *= 2;
-        list->data = realloc(list->data, list->capacity * list->item_size);
-        CHECK_MALLOC(list->data, "DynamicList_append");
-    }
-    memcpy(list->data + list->size * list->item_size, item, list->item_size);
-    list->size++;
-    return OK;
-}
-
-status_t dynamicList_free(dynamicList_t *list)
-{
-    if (list->data != NULL)
-    {
-        free(list->data);
-    }
-    free(list);
-    return OK;
-}
-
-status_t dynamicList_print(dynamicList_t *list)
-{
-    printf("DynamicList(");
-    printf("size=%zu, ", list->size);
-    printf("capacity=%zu)", list->capacity);
-    printf("\n");
-    printf("First 10 elements:\n");
-    for (int i = 0; i < 10; i++)
-    {
-        printf("%d: %d\n", i, *((int *)(list->data + i * sizeof(int)))); // TODO use generic type here
-    }
-    return OK;
-}
-
-//// end TODO
-
-status_t Tokenizer_encode(tokenizer_t *tokenizer, const char *input_str, int **token_ids)
+CallmStatusCode Tokenizer_encode(Tokenizer *tokenizer, const char *input_str, int **token_ids)
 {
     int ovector[REG_MAX_GROUP_MATCHES];
     int subject_length = strlen(input_str);
     int offset = 0;
     int rc; // In order to sotre each group match
 
-    dynamicList_t *tokens_ids = DynamicList_new(sizeof(int));
+    DynamicList *tokens_ids = DynamicList_new(sizeof(int));
 
     while ((rc = pcre_exec(tokenizer->ordinary_regex, NULL, input_str, subject_length, offset, 0, ovector,
                            REG_MAX_GROUP_MATCHES)) >= 0)
@@ -284,7 +215,7 @@ status_t Tokenizer_encode(tokenizer_t *tokenizer, const char *input_str, int **t
     return OK;
 }
 
-void Tokenizer_print(tokenizer_t *tokenizer)
+void Tokenizer_print(Tokenizer *tokenizer)
 {
     if (tokenizer == NULL)
     {
@@ -310,5 +241,3 @@ void Tokenizer_print(tokenizer_t *tokenizer)
     }
     printf("\n");
 }
-
-#endif // !#ifndef TOKENIZER_C

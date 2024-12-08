@@ -29,10 +29,10 @@
         exit(1);                                                                                                       \
     }
 
-typedef enum StatusCode
+typedef enum
 {
     ERROR,
     OK
-} status_t;
+} CallmStatusCode;
 
 #endif // !#ifndef LIB_ERRORS_H

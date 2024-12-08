@@ -6,6 +6,7 @@ I_FILES = $(SOURCES:.c=.i)
 CC = gcc
 CFLAGS = -Wall
 LDFLAGS = -ljansson -lpcre
+CMAKE_OPT= -DENABLE_TESTS=ON
 
 all: _run | $(PROGRAM)
 
@@ -31,3 +32,11 @@ prepare:
 dependency:
 	@rm -f graph.dot*
 	@cmake -B ./build -S . --graphviz=graph.dot && dot -Tpng graph.dot -o graph.png
+
+docs:
+	@cd docs && doxygen
+.PHONY: docs
+
+build: prepare
+	@cmake -B ./build -S . $(CMAKE_OPT)
+	@cd build && make

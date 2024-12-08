@@ -1,10 +1,8 @@
-#ifndef SAFETENSORS_C
-#define SAFETENSORS_C
-
+#include "./safetensors.h"
+#include "../utils/json.h"
+#include "../utils/logging.h"
+#include "./bf16.h"
 #include "safetensors.h"
-#include "lib/errors.h"
-#include "lib/json.h"
-#include "types.h"
 #include <fcntl.h>
 #include <jansson.h>
 #include <stdint.h>
@@ -17,7 +15,7 @@
 #define HEADER_SIZE_PART_SIZE sizeof(uint64_t)
 #define DEFAULT_HASH_TABLE_SIZE 16
 
-static status_t SafetensorsLayer_parse(json_t *layer, struct SafetensorsLayer *h)
+static CallmStatusCode SafetensorsLayer_parse(json_t *layer, SafetensorsLayer *h)
 {
     json_t *dtype = GET_JSON_OBJECT(layer, "dtype", dtype);
     json_t *shape = GET_JSON_OBJECT(layer, "shape", shape);
@@ -89,7 +87,7 @@ static status_t SafetensorsLayer_parse(json_t *layer, struct SafetensorsLayer *h
     return OK;
 }
 
-safetensors_t *Safetensors_new(const char *file_path)
+Safetensors *Safetensors_new(const char *file_path)
 {
     int fd = open(file_path, O_RDONLY);
     if (fd == -1)
@@ -135,12 +133,12 @@ safetensors_t *Safetensors_new(const char *file_path)
     header_content[header_size] = '\0';
 
     // Initialize header
-    safetensors_t *h = (safetensors_t *)malloc(sizeof(safetensors_t));
+    Safetensors *h = (Safetensors *)malloc(sizeof(Safetensors));
     CHECK_MALLOC_PANIC(h, "new safetensors header");
     h->map = NULL;
     h->map_size = filesize;
     h->header_size = header_size;
-    h->layer_table = new_hash_table(DEFAULT_HASH_TABLE_SIZE);
+    h->layer_table = HashTable_new(DEFAULT_HASH_TABLE_SIZE);
 
     h->raw_content = (char *)malloc(strlen(header_content) + 1);
     CHECK_MALLOC_PANIC(h->raw_content, "safetensors header content");
@@ -154,7 +152,7 @@ safetensors_t *Safetensors_new(const char *file_path)
     return h;
 }
 
-status_t Safetensors_print(safetensors_t *h)
+CallmStatusCode Safetensors_print(Safetensors *h)
 {
     char *key = NULL;
     void *value = NULL;
@@ -167,7 +165,7 @@ status_t Safetensors_print(safetensors_t *h)
 
         printf("Layer: %s\t\t", key);
         json_t *json_layer = GET_JSON_OBJECT_PANIC(h->json_root, key, json_layer);
-        safetensors_layer_t *layer = (struct SafetensorsLayer *)malloc(sizeof(struct SafetensorsLayer));
+        SafetensorsLayer *layer = (SafetensorsLayer *)malloc(sizeof(SafetensorsLayer));
         CHECK_MALLOC_PANIC(layer, key);
         CHECK_STATUS(SafetensorsLayer_parse(json_layer, layer), "Error parsing tensor header %s\n", key)
 
@@ -188,7 +186,7 @@ status_t Safetensors_print(safetensors_t *h)
     return OK;
 }
 
-static status_t Safetensors_parse(safetensors_t *h, const char *header_content)
+static CallmStatusCode Safetensors_parse(Safetensors *h, const char *header_content)
 {
     json_error_t error;
     json_t *root = json_loads(header_content, 0, &error);
@@ -203,30 +201,30 @@ static status_t Safetensors_parse(safetensors_t *h, const char *header_content)
     return OK;
 }
 
-matrix_t *Safetensors_load_matrix(const char *tensor_name, const safetensors_t *header)
+Matrix *Safetensors_load_matrix(const char *tensor_name, const Safetensors *header)
 {
     // Get layer metadata
     json_t *json_layer = GET_JSON_OBJECT_PANIC(header->json_root, tensor_name, json_layer);
-    safetensors_layer_t *layer = (struct SafetensorsLayer *)malloc(sizeof(struct SafetensorsLayer));
+    SafetensorsLayer *layer = (SafetensorsLayer *)malloc(sizeof(SafetensorsLayer));
     CHECK_MALLOC_PANIC(layer, tensor_name);
     CHECK_STATUS_PANIC(SafetensorsLayer_parse(json_layer, layer), "Error parsing tensor header %s\n", tensor_name)
 
     // Check is a matrix
     if (layer->shape_size != 2)
     {
-        printerr("Error: tensor %s is not a matrix\n", tensor_name);
+        LOGF_ERROR("tensor %s is not a matrix", tensor_name);
         exit(1);
     }
 
     // Get data from map
-    matrix_t *m = Matrix_new(layer->shape[0], layer->shape[1]);
+    Matrix *m = Matrix_new(layer->shape[0], layer->shape[1]);
 
     int nb_elements = layer->shape[0] * layer->shape[1];
     int start_index = HEADER_SIZE_PART_SIZE + header->header_size + layer->data_offset[0];
 
     if (layer->dtype == F32)
     {
-        printf("Loading float32 matrix\n");
+        LOG_INFO("Loading float32 matrix");
 
         char *buff = (char *)malloc(nb_elements * sizeof(float));
         CHECK_MALLOC_PANIC(buff, "tmp matrix data buffer");
@@ -241,7 +239,7 @@ matrix_t *Safetensors_load_matrix(const char *tensor_name, const safetensors_t *
     }
     else if (layer->dtype == BF16)
     {
-        printf("Loading bf16 matrix\n");
+        LOG_INFO("Loading bf16 matrix");
 
         char *buff = (char *)malloc(nb_elements * sizeof(bf16_t));
         CHECK_MALLOC_PANIC(buff, "tmp matrix data buffer");
@@ -266,29 +264,29 @@ matrix_t *Safetensors_load_matrix(const char *tensor_name, const safetensors_t *
     }
     else
     {
-        printerr("Error: unsupported dtype %d\n", layer->dtype);
+        LOGF_ERROR("unsupported dtype %zu", layer->dtype);
         exit(1);
     }
 
     return m;
 }
 
-status_t Safetensors_get_layer_by_name(const safetensors_t *h, const char *layer_name, safetensors_layer_t *layer)
+CallmStatusCode Safetensors_get_layer_by_name(const Safetensors *h, const char *layer_name, SafetensorsLayer *layer)
 {
-    hash_table_node_t *node = hash_table_get(h->layer_table, layer_name);
+    HashTableNode *node = HashTable_get(h->layer_table, layer_name);
     if (node == NULL)
     {
 
         printerr("Error: layer '%s' not found in header\n", layer_name);
         return ERROR;
     }
-    layer = (safetensors_layer_t *)node->value;
+    layer = (SafetensorsLayer *)node->value;
     return OK;
 }
 
-status_t Safetensors_free(safetensors_t *h)
+CallmStatusCode Safetensors_free(Safetensors *h)
 {
-    hash_table_free(h->layer_table);
+    HashTable_free(h->layer_table);
     free(h->raw_content);
     json_decref(h->json_root);
     if (munmap(h->map, h->map_size))
@@ -300,12 +298,10 @@ status_t Safetensors_free(safetensors_t *h)
     return OK;
 }
 
-status_t SafetensorsLayer_free(safetensors_layer_t *layer)
+CallmStatusCode SafetensorsLayer_free(SafetensorsLayer *layer)
 {
     free(layer->shape);
     free(layer->data_offset);
     free(layer);
     return OK;
 }
-
-#endif // !SAFETENSORS_C

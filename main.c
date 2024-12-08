@@ -1,6 +1,6 @@
-#include "lib/logging.h"
-#include "safetensors.h"
-#include "tokenizer/tokenizer.h"
+#include "src/maths/safetensors.h"
+#include "src/tokenizer/tokenizer.h"
+#include "src/utils/logging.h"
 #include <fcntl.h>
 #include <pcre.h>
 #include <stdint.h>

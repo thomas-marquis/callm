@@ -1,11 +1,9 @@
-#ifndef LIB_HASH_TABLE_C
-#define LIB_HASH_TABLE_C
-
 #include "hash_table.h"
+#include "errors.h"
 #include <stdlib.h>
 #include <string.h>
 
-unsigned int hash_table_hash(const char *key, int table_size)
+unsigned int HashTable_hash(const char *key, int table_size)
 {
     unsigned int hash = 0;
     while (*key)
@@ -15,9 +13,9 @@ unsigned int hash_table_hash(const char *key, int table_size)
     return hash % table_size;
 }
 
-hash_table_node_t *new_hash_table_node(const char *key, const void *value, size_t value_size)
+HashTableNode *HashTableNode_new(const char *key, const void *value, size_t value_size)
 {
-    hash_table_node_t *new_node = (hash_table_node_t *)malloc(sizeof(hash_table_node_t));
+    HashTableNode *new_node = (HashTableNode *)malloc(sizeof(HashTableNode));
     new_node->key = strdup(key);
     new_node->value = malloc(value_size);
     memcpy(new_node->value, value, value_size);
@@ -25,11 +23,11 @@ hash_table_node_t *new_hash_table_node(const char *key, const void *value, size_
     return new_node;
 }
 
-hash_table_t *new_hash_table(int size)
+HashTable *HashTable_new(int size)
 {
-    hash_table_t *hash_table = (hash_table_t *)malloc(sizeof(hash_table_t));
+    HashTable *hash_table = (HashTable *)malloc(sizeof(HashTable));
     CHECK_MALLOC_PANIC(hash_table, "hash table");
-    hash_table->table = (hash_table_node_t **)malloc(sizeof(hash_table_node_t *) * size);
+    hash_table->table = (HashTableNode **)malloc(sizeof(HashTableNode *) * size);
     CHECK_MALLOC_PANIC(hash_table->table, "hash table inner table");
     for (int i = 0; i < size; i++)
     {
@@ -40,10 +38,10 @@ hash_table_t *new_hash_table(int size)
     return hash_table;
 }
 
-status_t hash_table_resize(hash_table_t *hash_table)
+CallmStatusCode HashTable_resize(HashTable *hash_table)
 {
     int new_size = hash_table->size * 2;
-    hash_table_node_t **new_table = (hash_table_node_t **)malloc(sizeof(hash_table_node_t *) * new_size);
+    HashTableNode **new_table = (HashTableNode **)malloc(sizeof(HashTableNode *) * new_size);
     CHECK_MALLOC(new_table, "new hash table inner table");
     for (int i = 0; i < new_size; i++)
     {
@@ -52,11 +50,11 @@ status_t hash_table_resize(hash_table_t *hash_table)
 
     for (int i = 0; i < hash_table->size; i++)
     {
-        hash_table_node_t *temp = hash_table->table[i];
+        HashTableNode *temp = hash_table->table[i];
         while (temp)
         {
-            hash_table_node_t *next = temp->next;
-            unsigned int index = hash_table_hash(temp->key, new_size);
+            HashTableNode *next = temp->next;
+            unsigned int index = HashTable_hash(temp->key, new_size);
             temp->next = new_table[index];
             new_table[index] = temp;
             temp = next;
@@ -69,25 +67,25 @@ status_t hash_table_resize(hash_table_t *hash_table)
     return OK;
 }
 
-status_t hash_table_insert(hash_table_t *hash_table, const char *key, const void *value, size_t value_size)
+CallmStatusCode HashTable_insert(HashTable *hash_table, const char *key, const void *value, size_t value_size)
 {
     if ((float)hash_table->count / hash_table->size > LOAD_FACTOR)
     {
-        if (hash_table_resize(hash_table))
+        if (HashTable_resize(hash_table))
         {
             return ERROR;
         }
     }
 
-    unsigned int index = hash_table_hash(key, hash_table->size);
-    hash_table_node_t *new_node = new_hash_table_node(key, value, value_size);
+    unsigned int index = HashTable_hash(key, hash_table->size);
+    HashTableNode *new_node = HashTableNode_new(key, value, value_size);
     if (hash_table->table[index] == NULL)
     {
         hash_table->table[index] = new_node;
     }
     else
     {
-        hash_table_node_t *temp = hash_table->table[index];
+        HashTableNode *temp = hash_table->table[index];
         while (temp->next)
         {
             temp = temp->next;
@@ -98,10 +96,10 @@ status_t hash_table_insert(hash_table_t *hash_table, const char *key, const void
     return OK;
 }
 
-void *hash_table_get(hash_table_t *hash_table, const char *key)
+void *HashTable_get(HashTable *hash_table, const char *key)
 {
-    unsigned int index = hash_table_hash(key, hash_table->size);
-    hash_table_node_t *temp = hash_table->table[index];
+    unsigned int index = HashTable_hash(key, hash_table->size);
+    HashTableNode *temp = hash_table->table[index];
     while (temp)
     {
         if (strcmp(temp->key, key) == 0)
@@ -113,11 +111,11 @@ void *hash_table_get(hash_table_t *hash_table, const char *key)
     return NULL;
 }
 
-status_t hash_table_delete(hash_table_t *hash_table, const char *key)
+CallmStatusCode HashTable_delete(HashTable *hash_table, const char *key)
 {
-    unsigned int index = hash_table_hash(key, hash_table->size);
-    hash_table_node_t *temp = hash_table->table[index];
-    hash_table_node_t *prev = NULL;
+    unsigned int index = HashTable_hash(key, hash_table->size);
+    HashTableNode *temp = hash_table->table[index];
+    HashTableNode *prev = NULL;
     while (temp)
     {
         if (strcmp(temp->key, key) == 0)
@@ -142,14 +140,14 @@ status_t hash_table_delete(hash_table_t *hash_table, const char *key)
     return OK;
 }
 
-status_t hash_table_free(hash_table_t *hash_table)
+CallmStatusCode HashTable_free(HashTable *hash_table)
 {
     for (int i = 0; i < hash_table->size; i++)
     {
-        hash_table_node_t *temp = hash_table->table[i];
+        HashTableNode *temp = hash_table->table[i];
         while (temp)
         {
-            hash_table_node_t *to_free = temp;
+            HashTableNode *to_free = temp;
             temp = temp->next;
             free(to_free->key);
             free(to_free->value);
@@ -161,16 +159,14 @@ status_t hash_table_free(hash_table_t *hash_table)
     return OK;
 }
 
-char **hash_table_keys(hash_table_t *hash_table)
+char **HashTable_keys(HashTable *hash_table)
 {
     char **keys = (char **)malloc(sizeof(char *) * hash_table->count);
     for (int i = 0; i < hash_table->count; i++)
     {
-        hash_table_node_t *temp = hash_table->table[i];
+        HashTableNode *temp = hash_table->table[i];
         printf("COUCOU : key=%p\n", temp);
         keys[i] = temp->key;
     }
     return keys;
 }
-
-#endif // !LIB_HASH_TABLE_C

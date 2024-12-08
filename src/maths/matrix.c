@@ -1,32 +1,28 @@
-#ifndef MATRIX_C
-#define MATRIX_C
-
-#include "matrix.h"
-#include "lib/errors.h"
-#include "lib/logging.h"
+#include "./matrix.h"
+#include "../utils/logging.h"
 #include <immintrin.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #define BLOCK_SIZE 16
 
-matrix_t *Matrix_new(int r, int c)
+Matrix *Matrix_new(int r, int c)
 {
-    matrix_t *M = (matrix_t *)malloc(sizeof(matrix_t));
+    Matrix *M = (Matrix *)malloc(sizeof(Matrix));
     M->r = r;
     M->c = c;
     M->data = NULL;
     return M;
 }
 
-status_t Matrix_free(matrix_t *M)
+CallmStatusCode Matrix_free(Matrix *M)
 {
     free(M->data);
     free(M);
     return OK;
 }
 
-status_t Matrix_fill(matrix_t *M, float *data)
+CallmStatusCode Matrix_fill(Matrix *M, float *data)
 {
     for (int i = 0; i < M->r; i++)
     {
@@ -38,11 +34,11 @@ status_t Matrix_fill(matrix_t *M, float *data)
     return OK;
 }
 
-status_t Matrix_dot(const matrix_t *A, const matrix_t *B, matrix_t *C)
+CallmStatusCode Matrix_dot(const Matrix *A, const Matrix *B, Matrix *C)
 {
     if (A->c != B->r)
     {
-        printf("Error: Matrix dimensions do not match\n");
+        LOG_ERROR("Matrix dimensions do not match");
         return ERROR;
     }
 
@@ -60,14 +56,14 @@ status_t Matrix_dot(const matrix_t *A, const matrix_t *B, matrix_t *C)
     return OK;
 }
 
-matrix_t *Matrix_slice_line(const matrix_t *M, int from, int nb)
+Matrix *Matrix_slice_line(const Matrix *M, int from, int nb)
 {
     if (from + nb > M->r)
     {
-        log_error("Error: slice out of bounds");
+        LOG_ERROR("Error: slice out of bounds");
         return NULL;
     }
-    matrix_t *M_slice = Matrix_new(nb, M->c);
+    Matrix *M_slice = Matrix_new(nb, M->c);
     for (int i = 0; i < nb; i++)
     {
         for (int j = 0; j < M->c; j++)
@@ -78,14 +74,14 @@ matrix_t *Matrix_slice_line(const matrix_t *M, int from, int nb)
     return M_slice;
 }
 
-matrix_t *Matrix_slice_column(const matrix_t *M, int from, int nb)
+Matrix *Matrix_slice_column(const Matrix *M, int from, int nb)
 {
     if (from + nb > M->c)
     {
-        log_error("Error: slice out of bounds");
+        LOG_ERROR("Error: slice out of bounds");
         return NULL;
     }
-    matrix_t *M_slice = Matrix_new(M->r, nb);
+    Matrix *M_slice = Matrix_new(M->r, nb);
     for (int i = 0; i < M->r; i++)
     {
         for (int j = 0; j < nb; j++)
@@ -96,7 +92,7 @@ matrix_t *Matrix_slice_column(const matrix_t *M, int from, int nb)
     return M_slice;
 }
 
-void Matrix_print(const matrix_t *M)
+void Matrix_print(const Matrix *M)
 {
     printf("M(%dx%d)=\n", M->r, M->c);
     for (int i = 0; i < M->r; i++)
@@ -188,5 +184,3 @@ void Matrix_print(const matrix_t *M)
 //                      : "r"(A->data), "r"(B->data), "r"(C->data), "r"(C->c)
 //                      : "rsi", "r8", "r9", "r10", "ymm0", "ymm1", "ymm2", "memory");
 // }
-
-#endif // !MATRIX_C
