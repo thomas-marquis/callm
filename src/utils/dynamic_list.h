@@ -16,8 +16,8 @@ DynamicList *DynamicList_new (size_t item_size);
 
 CallmStatusCode DynamicList_append (DynamicList *list, void *item);
 
-CallmStatusCode dynamicList_free (DynamicList *list);
+CallmStatusCode DynamicList_free (DynamicList *list);
 
-CallmStatusCode dynamicList_print (DynamicList *list);
+CallmStatusCode DynamicList_print (DynamicList *list);
 
 #endif // !#ifndef DYNAMIC_LIST_H

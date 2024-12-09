@@ -30,7 +30,7 @@ DynamicList_append (DynamicList *list, void *item)
 }
 
 CallmStatusCode
-dynamicList_free (DynamicList *list)
+DynamicList_free (DynamicList *list)
 {
   if (list->data != NULL)
     {
@@ -41,7 +41,7 @@ dynamicList_free (DynamicList *list)
 }
 
 CallmStatusCode
-dynamicList_print (DynamicList *list)
+DynamicList_print (DynamicList *list)
 {
   printf ("DynamicList(");
   printf ("size=%zu, ", list->size);

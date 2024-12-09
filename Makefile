@@ -8,18 +8,7 @@ CFLAGS = -Wall
 LDFLAGS = -ljansson -lpcre
 CMAKE_OPT= -DENABLE_TESTS=ON
 
-all: _run | $(PROGRAM)
-
-run: _run | clean
-
-_run: $(PROGRAM)
-	./$(PROGRAM)
-
-$(PROGRAM): $(OBJECTS)
-	$(CC) -o $@ $^ $(LDFLAGS)
-
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+all: run
 
 clean:
 	@rm -f $(OBJECTS) $(PROGRAM) $(ASM) $(I_FILES)
@@ -40,3 +29,8 @@ docs:
 build: prepare
 	@cmake -B ./build -S . $(CMAKE_OPT)
 	@cd build && make
+.PHONY: build
+
+run: build
+	@./build/callm
+.PHONY: run

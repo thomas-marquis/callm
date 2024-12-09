@@ -32,4 +32,13 @@ add_subdirectory(src)
 
 add_executable(callm ${CALLM_ROOT_EXE})
 
-target_link_libraries(callm PUBLIC root vocab lib jansson)
+target_link_libraries(
+  callm
+  PUBLIC callm_utils
+         callm_tokenizer
+         callm_maths
+         jansson
+         pcre2-8
+         pcre2-16
+         pcre2-32
+         pcre2-posix)

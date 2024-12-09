@@ -2,6 +2,7 @@
 #include "../utils/dynamic_list.h"
 #include "../utils/errors.h"
 #include "../utils/json.h"
+#include "../utils/linear_map.h"
 #include "../utils/logging.h"
 #include <assert.h>
 #include <fcntl.h>
@@ -224,8 +225,8 @@ Tokenizer_encode (Tokenizer *tokenizer, const char *input_str, int **token_ids)
   // {
   //     printf("Error while matching: %d\n", rc);
   // }
-  dynamicList_print (tokens_ids);
-  dynamicList_free (tokens_ids);
+  DynamicList_print (tokens_ids);
+  DynamicList_free (tokens_ids);
 
   // Etape d'encodage sans tokens spéciaux:
   // appliquer la regexp et ittérer sur les find
