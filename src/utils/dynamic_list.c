@@ -3,50 +3,56 @@
 #include <stdlib.h>
 #include <string.h>
 
-DynamicList *DynamicList_new(size_t item_size)
+DynamicList *
+DynamicList_new (size_t item_size)
 {
-    DynamicList *list = (DynamicList *)malloc(sizeof(DynamicList));
-    list->data = NULL;
-    list->size = 0;
-    list->capacity = 10; // TODO magic  number
-    list->item_size = item_size;
-    list->data = (void *)malloc(list->capacity * sizeof(item_size));
-    return list;
+  DynamicList *list = (DynamicList *)malloc (sizeof (DynamicList));
+  list->data = NULL;
+  list->size = 0;
+  list->capacity = 10; // TODO magic  number
+  list->item_size = item_size;
+  list->data = (void *)malloc (list->capacity * sizeof (item_size));
+  return list;
 }
 
-CallmStatusCode DynamicList_append(DynamicList *list, void *item)
+CallmStatusCode
+DynamicList_append (DynamicList *list, void *item)
 {
-    if (list->size == list->capacity)
+  if (list->size == list->capacity)
     {
-        list->capacity *= 2;
-        list->data = realloc(list->data, list->capacity * list->item_size);
-        CHECK_MALLOC(list->data, "DynamicList_append");
+      list->capacity *= 2;
+      list->data = realloc (list->data, list->capacity * list->item_size);
+      CHECK_MALLOC (list->data, "DynamicList_append");
     }
-    memcpy(list->data + list->size * list->item_size, item, list->item_size);
-    list->size++;
-    return OK;
+  memcpy (list->data + list->size * list->item_size, item, list->item_size);
+  list->size++;
+  return OK;
 }
 
-CallmStatusCode dynamicList_free(DynamicList *list)
+CallmStatusCode
+dynamicList_free (DynamicList *list)
 {
-    if (list->data != NULL)
+  if (list->data != NULL)
     {
-        free(list->data);
+      free (list->data);
     }
-    free(list);
-    return OK;
+  free (list);
+  return OK;
 }
 
-CallmStatusCode dynamicList_print(DynamicList *list)
+CallmStatusCode
+dynamicList_print (DynamicList *list)
 {
-    printf("DynamicList(");
-    printf("size=%zu, ", list->size);
-    printf("capacity=%zu)", list->capacity);
-    printf("\n");
-    printf("First 10 elements:\n");
-    for (int i = 0; i < 10; i++)
+  printf ("DynamicList(");
+  printf ("size=%zu, ", list->size);
+  printf ("capacity=%zu)", list->capacity);
+  printf ("\n");
+  printf ("First 10 elements:\n");
+  for (int i = 0; i < 10; i++)
     {
-        printf("%d: %d\n", i, *((int *)(list->data + i * sizeof(int)))); // TODO use generic type here
+      printf ("%d: %d\n", i,
+              *((int *)(list->data
+                        + i * sizeof (int)))); // TODO use generic type here
     }
-    return OK;
+  return OK;
 }

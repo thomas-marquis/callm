@@ -8,17 +8,17 @@
 
 struct HashTableNode
 {
-    char *key;
-    char *value;
-    struct HashTableNode *next;
+  char *key;
+  char *value;
+  struct HashTableNode *next;
 };
 typedef struct HashTableNode HashTableNode;
 
 typedef struct
 {
-    HashTableNode **table;
-    int size;
-    int count;
+  HashTableNode **table;
+  int size;
+  int count;
 } HashTable;
 
 /**
@@ -28,7 +28,7 @@ typedef struct
  * @param table_size The size of the hash table.
  * @return The hash value for the key.
  */
-unsigned int HashTable_hash(const char *key, int table_size);
+unsigned int HashTable_hash (const char *key, int table_size);
 
 /**
  * Creates a new hash table node.
@@ -38,7 +38,8 @@ unsigned int HashTable_hash(const char *key, int table_size);
  * @param value_size The size of the value.
  * @return A pointer to the newly created node.
  */
-HashTableNode *HashTableNode_new(const char *key, const void *value, size_t value_size);
+HashTableNode *HashTableNode_new (const char *key, const void *value,
+                                  size_t value_size);
 
 /**
  * Creates a new hash table.
@@ -46,7 +47,7 @@ HashTableNode *HashTableNode_new(const char *key, const void *value, size_t valu
  * @param size The initial size of the hash table.
  * @return A pointer to the newly created hash table.
  */
-HashTable *HashTable_new(int size);
+HashTable *HashTable_new (int size);
 
 /**
  * Resizes the hash table to accommodate more elements.
@@ -54,7 +55,7 @@ HashTable *HashTable_new(int size);
  * @param hash_table The hash table to resize.
  * @return CallmStatusCode OK if the resize was successful, ERROR otherwise.
  */
-CallmStatusCode HashTable_resize(HashTable *hash_table);
+CallmStatusCode HashTable_resize (HashTable *hash_table);
 
 /**
  * Inserts a key-value pair into the hash table.
@@ -65,7 +66,8 @@ CallmStatusCode HashTable_resize(HashTable *hash_table);
  * @param value_size The size of the value.
  * @return status_t OK if the resize was successful, ERROR otherwise.
  */
-CallmStatusCode HashTable_insert(HashTable *hash_table, const char *key, const void *value, size_t value_size);
+CallmStatusCode HashTable_insert (HashTable *hash_table, const char *key,
+                                  const void *value, size_t value_size);
 
 /**
  * Retrieves a value from the hash table by key.
@@ -74,7 +76,7 @@ CallmStatusCode HashTable_insert(HashTable *hash_table, const char *key, const v
  * @param key The key to search for.
  * @return The value associated with the key, or NULL if the key is not found.
  */
-void *HashTable_get(HashTable *hash_table, const char *key);
+void *HashTable_get (HashTable *hash_table, const char *key);
 
 /**
  * Deletes a key-value pair from the hash table.
@@ -83,7 +85,7 @@ void *HashTable_get(HashTable *hash_table, const char *key);
  * @param key The key to delete.
  * @return status_t OK if the resize was successful, ERROR otherwise.
  */
-CallmStatusCode HashTable_delete(HashTable *hash_table, const char *key);
+CallmStatusCode HashTable_delete (HashTable *hash_table, const char *key);
 
 /**
  * Frees the memory allocated for the hash table.
@@ -91,8 +93,8 @@ CallmStatusCode HashTable_delete(HashTable *hash_table, const char *key);
  * @param hash_table The hash table to free.
  * @return CallmStatusCode OK if the resize was successful, ERROR otherwise.
  */
-CallmStatusCode HashTable_free(HashTable *hash_table);
+CallmStatusCode HashTable_free (HashTable *hash_table);
 
-char **HashTable_keys(HashTable *hash_table);
+char **HashTable_keys (HashTable *hash_table);
 
 #endif // !LIB_HASH_TABLE_H

@@ -5,21 +5,21 @@
 
 typedef struct
 {
-    char *key;
-    void *value;
-    int value_size;
+  char *key;
+  void *value;
+  int value_size;
 } LinearMapItem;
 
 typedef struct
 {
-    LinearMapItem *items;
-    int size;
-    int capacity;
+  LinearMapItem *items;
+  int size;
+  int capacity;
 } LinearMap;
 
-LinearMap *LinearMap_new();
+LinearMap *LinearMap_new ();
 
-void LinearMap_free(LinearMap *map);
+void LinearMap_free (LinearMap *map);
 
 /**
  * Insert a value into a linear map.
@@ -30,15 +30,17 @@ void LinearMap_free(LinearMap *map);
  * @param value_size The size (bytes) of the value.
  * @return status_t OK if the insertion was successful, ERROR otherwise.
  */
-CallmStatusCode LinearMap_insert(LinearMap *map, char *key, void *value, int value_size);
+CallmStatusCode LinearMap_insert (LinearMap *map, char *key, void *value,
+                                  int value_size);
 
 /**
  * Get a value from a linear map.
  *
  * @param map The linear map to get the value from.
  * @param key The key of the value to get.
- * @return The value associated with the key, or NULL if the key does not exist.
+ * @return The value associated with the key, or NULL if the key does not
+ * exist.
  */
-void *LinearMap_get(LinearMap *map, char *key);
+void *LinearMap_get (LinearMap *map, char *key);
 
 #endif // !#ifndef LINEAR_MAP_H
