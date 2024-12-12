@@ -12,3 +12,6 @@ __pycache__
 /graph.png
 /tokenizer.json
 docs
+/.cache
+/out
+/compile_commands.json

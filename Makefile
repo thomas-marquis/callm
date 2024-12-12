@@ -6,7 +6,7 @@ I_FILES = $(SOURCES:.c=.i)
 CC = gcc
 CFLAGS = -Wall
 LDFLAGS = -ljansson -lpcre
-CMAKE_OPT= -DENABLE_TESTS=ON
+CMAKE_OPT= -DENABLE_TESTING=OFF
 
 all: run
 
@@ -32,5 +32,12 @@ build: prepare
 .PHONY: build
 
 run: build
+
 	@./build/callm
 .PHONY: run
+
+
+test: prepare
+	@cmake -B ./build -S . -DENABLE_TESTING=ON
+	@cd build && make
+	@cd build/tests && make test

@@ -2,7 +2,6 @@
 #define TOKENIZER_H
 #define PCRE2_CODE_UNIT_WIDTH 8
 
-#include "../utils/dynamic_list.h"
 #include "../utils/errors.h"
 #include "../utils/linear_map.h"
 #include <pcre2.h>

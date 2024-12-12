@@ -32,7 +32,10 @@
 typedef enum
 {
   ERROR,
-  OK
+  OK,
+  NOT_IMPLEMENTED
 } CallmStatusCode;
+
+char *CallmStatusCode_string (CallmStatusCode code);
 
 #endif // !#ifndef LIB_ERRORS_H
