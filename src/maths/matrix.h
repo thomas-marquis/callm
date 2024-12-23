@@ -6,9 +6,9 @@
 
 typedef struct
 {
-  int r;
-  int c;
-  float *data;
+    int r;
+    int c;
+    float *data;
 } Matrix;
 
 /*
@@ -17,7 +17,7 @@ typedef struct
  *
  *  Creates a new matrix with r rows and c columns
  */
-Matrix *Matrix_new (int r, int c);
+Matrix *Matrix_new(int r, int c);
 
 /**
  * @brief Frees the memory allocated for a matrix object.
@@ -28,7 +28,7 @@ Matrix *Matrix_new (int r, int c);
  * @param M A pointer to the `matrix` object to be freed.
  * @return status_t OK if the free was successful, ERROR otherwise.
  */
-CallmStatusCode Matrix_free (Matrix *M);
+CallmStatusCode Matrix_free(Matrix *M);
 
 /**
  * @brief Function: fill_matrix
@@ -39,7 +39,7 @@ CallmStatusCode Matrix_free (Matrix *M);
  * @param data: data to fill the matrix with
  * @return status_t OK if the fill was successful, ERROR otherwise.
  */
-CallmStatusCode Matrix_fill (Matrix *M, float *data);
+CallmStatusCode Matrix_fill(Matrix *M, float *data);
 
 /*
  * Function: matmult
@@ -47,7 +47,7 @@ CallmStatusCode Matrix_fill (Matrix *M, float *data);
  *
  *  Multiplies two matrices A and B and returns the result matrix C
  */
-CallmStatusCode Matrix_dot (const Matrix *A, const Matrix *B, Matrix *C);
+CallmStatusCode Matrix_dot(const Matrix *A, const Matrix *B, Matrix *C);
 
 /*
  * Function: print_matrix
@@ -55,11 +55,11 @@ CallmStatusCode Matrix_dot (const Matrix *A, const Matrix *B, Matrix *C);
  *
  *  Prints the matrix
  */
-void Matrix_print (const Matrix *M);
+void Matrix_print(const Matrix *M);
 
-Matrix *Matrix_slice_line (const Matrix *M, int from, int nb);
+Matrix *Matrix_slice_line(const Matrix *M, int from, int nb);
 
-Matrix *Matrix_slice_column (const Matrix *M, int from, int nb);
+Matrix *Matrix_slice_column(const Matrix *M, int from, int nb);
 
 /*
  * Function: delete_matrix
@@ -68,4 +68,4 @@ Matrix *Matrix_slice_column (const Matrix *M, int from, int nb);
  *  Deletes the matrix and frees the memory
  */
 // int delete_matrix(matrix *M);
-#endif // MATRIX_H
+#endif  // MATRIX_H

@@ -7,111 +7,110 @@
 #define BLOCK_SIZE 16
 
 Matrix *
-Matrix_new (int r, int c)
+Matrix_new(int r, int c)
 {
-  Matrix *M = (Matrix *)malloc (sizeof (Matrix));
-  M->r = r;
-  M->c = c;
-  M->data = NULL;
-  return M;
+    Matrix *M = (Matrix *) malloc(sizeof(Matrix));
+    M->r = r;
+    M->c = c;
+    M->data = NULL;
+    return M;
 }
 
 CallmStatusCode
-Matrix_free (Matrix *M)
+Matrix_free(Matrix *M)
 {
-  free (M->data);
-  free (M);
-  return OK;
+    free(M->data);
+    free(M);
+    return OK;
 }
 
 CallmStatusCode
-Matrix_fill (Matrix *M, float *data)
+Matrix_fill(Matrix *M, float *data)
 {
-  for (int i = 0; i < M->r; i++)
+    for (int i = 0; i < M->r; i++)
     {
-      for (int j = 0; j < M->c; j++)
+        for (int j = 0; j < M->c; j++)
         {
-          M->data[i * M->c + j] = data[i * M->c + j];
+            M->data[i * M->c + j] = data[i * M->c + j];
         }
     }
-  return OK;
+    return OK;
 }
 
 CallmStatusCode
-Matrix_dot (const Matrix *A, const Matrix *B, Matrix *C)
+Matrix_dot(const Matrix *A, const Matrix *B, Matrix *C)
 {
-  if (A->c != B->r)
+    if (A->c != B->r)
     {
-      LOG_ERROR ("Matrix dimensions do not match");
-      return ERROR;
+        LOG_ERROR("Matrix dimensions do not match");
+        return ERROR;
     }
 
-  for (int a_row = 0; a_row < A->r; a_row++)
+    for (int a_row = 0; a_row < A->r; a_row++)
     {
-      for (int b_col = 0; b_col < B->c; b_col++)
+        for (int b_col = 0; b_col < B->c; b_col++)
         {
-          C->data[a_row * C->c + b_col] = 0;
-          for (int k = 0; k < A->c; k++)
+            C->data[a_row * C->c + b_col] = 0;
+            for (int k = 0; k < A->c; k++)
             {
-              C->data[a_row * C->c + b_col]
-                  += A->data[a_row * A->c + k] * B->data[k * B->c + b_col];
+                C->data[a_row * C->c + b_col] += A->data[a_row * A->c + k] * B->data[k * B->c + b_col];
             }
         }
     }
-  return OK;
+    return OK;
 }
 
 Matrix *
-Matrix_slice_line (const Matrix *M, int from, int nb)
+Matrix_slice_line(const Matrix *M, int from, int nb)
 {
-  if (from + nb > M->r)
+    if (from + nb > M->r)
     {
-      LOG_ERROR ("Error: slice out of bounds");
-      return NULL;
+        LOG_ERROR("Error: slice out of bounds");
+        return NULL;
     }
-  Matrix *M_slice = Matrix_new (nb, M->c);
-  for (int i = 0; i < nb; i++)
+    Matrix *M_slice = Matrix_new(nb, M->c);
+    for (int i = 0; i < nb; i++)
     {
-      for (int j = 0; j < M->c; j++)
+        for (int j = 0; j < M->c; j++)
         {
-          M_slice->data[i * M->c + j] = M->data[(from + i) * M->c + j];
+            M_slice->data[i * M->c + j] = M->data[(from + i) * M->c + j];
         }
     }
-  return M_slice;
+    return M_slice;
 }
 
 Matrix *
-Matrix_slice_column (const Matrix *M, int from, int nb)
+Matrix_slice_column(const Matrix *M, int from, int nb)
 {
-  if (from + nb > M->c)
+    if (from + nb > M->c)
     {
-      LOG_ERROR ("Error: slice out of bounds");
-      return NULL;
+        LOG_ERROR("Error: slice out of bounds");
+        return NULL;
     }
-  Matrix *M_slice = Matrix_new (M->r, nb);
-  for (int i = 0; i < M->r; i++)
+    Matrix *M_slice = Matrix_new(M->r, nb);
+    for (int i = 0; i < M->r; i++)
     {
-      for (int j = 0; j < nb; j++)
+        for (int j = 0; j < nb; j++)
         {
-          M_slice->data[i * nb + j] = M->data[i * M->c + from + j];
+            M_slice->data[i * nb + j] = M->data[i * M->c + from + j];
         }
     }
-  return M_slice;
+    return M_slice;
 }
 
 void
-Matrix_print (const Matrix *M)
+Matrix_print(const Matrix *M)
 {
-  printf ("M(%dx%d)=\n", M->r, M->c);
-  for (int i = 0; i < M->r; i++)
+    printf("M(%dx%d)=\n", M->r, M->c);
+    for (int i = 0; i < M->r; i++)
     {
-      for (int j = 0; j < M->c; j++)
+        for (int j = 0; j < M->c; j++)
         {
-          printf ("%f ", M->data[i * M->c + j]);
+            printf("%f ", M->data[i * M->c + j]);
         }
-      printf ("\n");
+        printf("\n");
     }
-  printf ("\n");
+    printf("\n");
 }
 
 // void multiply_matrices_blocked(int **A, int **B, int **C, int m, int n, int

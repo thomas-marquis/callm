@@ -3,23 +3,16 @@
 #define PCRE2_CODE_UNIT_WIDTH 8
 
 #include "../utils/errors.h"
-#include "../utils/linear_map.h"
 #include <pcre2.h>
 
-typedef struct
-{
-  LinearMap *encoder; // token to id
-  LinearMap *decoder; // id to token
-  pcre2_code *ordinary_regex;
-} Tokenizer;
+typedef struct Tokenizer Tokenizer;
 
-Tokenizer *Tokenizer_new (char *filepath);
+Tokenizer *Tokenizer_new(char *filepath);
 
-CallmStatusCode Tokenizer_encode (Tokenizer *tokenizer, const char *input_str,
-                                  int **token_ids);
+CallmStatusCode Tokenizer_encode(Tokenizer *tokenizer, const char *input_str, int **token_ids);
 
-CallmStatusCode Tokenizer_free (Tokenizer *tokenizer);
+CallmStatusCode Tokenizer_free(Tokenizer *tokenizer);
 
-void Tokenizer_print (Tokenizer *tokenizer);
+void Tokenizer_print(Tokenizer *tokenizer);
 
-#endif // !#ifndef TOKENIZER_H
+#endif  // !#ifndef TOKENIZER_H

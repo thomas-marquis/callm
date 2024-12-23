@@ -1,0 +1,8 @@
+BasedOnStyle: GNU
+IndentWidth: 4
+ColumnLimit: 120
+AllowShortFunctionsOnASingleLine: Empty
+BreakBeforeBraces: Allman
+SpacesBeforeTrailingComments: 2
+SpaceAfterCStyleCast: true
+SpaceBeforeParens: ControlStatements

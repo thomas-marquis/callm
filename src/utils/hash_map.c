@@ -12,205 +12,206 @@
 
 typedef struct
 {
-  const char *key;
-  void *value;
+    const char *key;
+    void *value;
 } HashMapItem;
 
 struct HashMap
 {
-  HashMapItem *items;
-  size_t size;
-  size_t capacity;
+    HashMapItem *items;
+    size_t size;
+    size_t capacity;
 };
 
 // Return 64-bit FNV-1a hash for key (NUL-terminated). See description:
 // https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function
 static uint64_t
-hash_key (const char *key)
+hash_key(const char *key)
 {
-  uint64_t hash = FNV_OFFSET;
-  for (const char *p = key; *p; p++)
+    uint64_t hash = FNV_OFFSET;
+    for (const char *p = key; *p; p++)
     {
-      hash ^= (uint64_t)(unsigned char)(*p);
-      hash *= FNV_PRIME;
+        hash ^= (uint64_t) (unsigned char) (*p);
+        hash *= FNV_PRIME;
     }
-  return hash;
+    return hash;
 }
 
 static CallmStatusCode
-insert_item (HashMapItem *items, size_t capacity, size_t *map_size,
-             const char *key, void *value)
+insert_item(HashMapItem *items, size_t capacity, size_t *map_size, const char *key, void *value)
 {
-  uint64_t hash = hash_key (key);
-  size_t index = (size_t)(hash & (uint64_t)(capacity - 1));
+    uint64_t hash = hash_key(key);
+    size_t index = (size_t) (hash & (uint64_t) (capacity - 1));
 
-  // Loop till we find an empty entry.
-  while (items[index].key != NULL)
+    LOGF_INFO("Inserting item in hash map at index %zu", index);
+
+    // Loop till we find an empty entry.
+    while (items[index].key != NULL)
     {
-      if (strcmp (key, items[index].key) == 0)
+        LOGF_INFO("TOTO %s:", items[index].key);
+        if (strcmp(key, items[index].key) == 0)
         {
-          // Found key (it already exists), update value.
-          items[index].value = value;
-          return OK;
+            LOGF_INFO("Key already exists in hash map: %s", key);
+
+            // Found key (it already exists), update value.
+            items[index].value = value;
+
+            LOG_INFO("COUCOU");
+
+            return OK;
         }
-      // Key wasn't in this slot, move to next (linear probing).
-      index++;
-      if (index >= capacity)
+        // Key wasn't in this slot, move to next (linear probing).
+        LOG_INFO("DUDU1");
+        index++;
+        LOG_INFO("DUDU2");
+        if (index >= capacity)
         {
-          // At end of entries array, wrap around.
-          index = 0;
+            // At end of entries array, wrap around.
+            index = 0;
         }
     }
 
-  // Didn't find key, allocate+copy if needed, then insert it.
-  if (map_size != NULL)
+    // Didn't find key, allocate+copy if needed, then insert it.
+    if (map_size != NULL)
     {
-      key = strdup (key);
-      CHECK_MALLOC (key, "error duplicating key");
-      (*map_size)++;
-    }
-  items[index].key = key;
-  items[index].value = value;
+        LOGF_INFO("Allocating memory for key %s", key);
+        key = strdup(key);
 
-  return OK;
+        LOG_INFO("DUDU3");
+
+        LOGF_INFO("Duplicated key: %s", (char *) key);
+        CHECK_MALLOC(key, "error duplicating key");
+        (*map_size)++;
+    }
+    items[index].key = key;
+    LOG_INFO("Setting value in hash map");
+
+    items[index].value = value;
+
+    return OK;
 }
 
 static CallmStatusCode
-expand_map (HashMap *map)
+expand_map(HashMap *map)
 {
-  size_t new_capacity = map->capacity * 2;
-  if (new_capacity < map->capacity)
+    size_t new_capacity = map->capacity * 2;
+    if (new_capacity < map->capacity)
     {
-      LOG_ERROR ("error expanding map: new capacity would overflow");
-      return ERROR;
+        LOG_ERROR("error expanding map: new capacity would overflow");
+        return ERROR;
     }
 
-  HashMapItem *new_items = calloc (new_capacity, sizeof (HashMapItem));
-  CHECK_MALLOC (new_items, "error allocating memory for new items");
+    HashMapItem *new_items = calloc(new_capacity, sizeof(HashMapItem));
+    CHECK_MALLOC(new_items, "error allocating memory for new items");
 
-  // Iterate entries, move all non-empty ones to new table's entries.
-  for (size_t i = 0; i < map->capacity; i++)
+    // Iterate entries, move all non-empty ones to new table's entries.
+    for (size_t i = 0; i < map->capacity; i++)
     {
-      HashMapItem item = map->items[i];
-      if (item.key != NULL)
+        HashMapItem item = map->items[i];
+        if (item.key != NULL)
         {
-          if (insert_item (new_items, new_capacity, NULL, item.key, item.value)
-              == ERROR)
+            if (insert_item(new_items, new_capacity, NULL, item.key, item.value) == ERROR)
             {
-              LOG_ERROR ("error inserting item in new map");
-              return ERROR;
+                LOG_ERROR("error inserting item in new map");
+                return ERROR;
             }
         }
     }
 
-  // Free old entries array and update this amp's details.
-  free (map->items);
-  map->items = new_items;
-  map->capacity = new_capacity;
+    // Free old entries array and update this amp's details.
+    free(map->items);
+    map->items = new_items;
+    map->capacity = new_capacity;
 
-  return OK;
-}
-
-static CallmStatusCode
-HashMapItem_free (HashMapItem *item)
-{
-  if (item == NULL)
-    {
-      return OK;
-    }
-
-  if (item->key != NULL)
-    {
-      free ((void *)item->key);
-    }
-  free (item);
-
-  return OK;
+    return OK;
 }
 
 HashMap *
-HashMap_new ()
+HashMap_new()
 {
-  HashMap *map = malloc (sizeof (HashMap));
-  CHECK_MALLOC_PANIC (map, "error allocating memory for HashMapStrStr");
+    HashMap *map = malloc(sizeof(HashMap));
+    CHECK_MALLOC_PANIC(map, "error allocating memory for HashMapStrStr");
 
-  HashMapItem *items
-      = calloc (HASH_MAP_INITIAL_CAPACITY, sizeof (HashMapItem));
-  CHECK_MALLOC_PANIC (
-      items, "error allocating memory for initial HashMapStrStr items");
+    map->capacity = HASH_MAP_INITIAL_CAPACITY;
+    map->size = 0;
 
-  map->capacity = HASH_MAP_INITIAL_CAPACITY;
-  map->size = 0;
-  map->items = items;
+    map->items = calloc(map->capacity, sizeof(HashMapItem));
+    CHECK_MALLOC_PANIC(map->items, "error allocating memory for initial HashMapStrStr items");
 
-  return map;
+    return map;
 }
 
 CallmStatusCode
-HashMap_free (HashMap *map)
+HashMap_free(HashMap *map)
 {
-  if (map == NULL)
+    if (map == NULL)
     {
-      return OK;
+        return OK;
     }
-  if (map->items != NULL)
+    if (map->items != NULL)
     {
-      for (int i = 0; i < map->capacity; i++)
+        for (int i = 0; i < map->capacity; i++)
         {
-          HashMapItem_free (&map->items[i]);
+            free((void *) map->items[i].key);
         }
-      free (map->items);
+        free(map->items);
     }
-  free (map);
+    free(map);
 
-  return OK;
+    return OK;
 }
 
 CallmStatusCode
-HashMap_insert (HashMap *map, const char *key, void *value)
+HashMap_insert(HashMap *map, const char *key, void *value)
 {
-  if (value == NULL)
+    if (value == NULL)
     {
 
-      LOG_ERROR ("impossible to insert null pointer value in hash map");
-      return ERROR;
+        LOG_ERROR("impossible to insert null pointer value in hash map");
+        return ERROR;
     }
 
-  if (map->size >= map->capacity / 2)
+    if (map->size >= map->capacity / 2)
     {
-      CallmStatusCode err = expand_map (map);
-      if (err != OK)
+        CallmStatusCode err = expand_map(map);
+        if (err != OK)
         {
-          LOGF_ERROR ("error expanding map: %s", CallmStatusCode_string (err));
-          return ERROR;
+            LOGF_ERROR("error expanding map: %s", CallmStatusCode_string(err));
+            return ERROR;
         }
     }
 
-  return insert_item (map->items, map->capacity, &map->size, key, value);
+    return insert_item(map->items, map->capacity, &map->size, key, value);
 }
 
 void *
-HashMap_get (HashMap *map, const char *key)
+HashMap_get(HashMap *map, const char *key)
 {
-  // AND hash with capacity-1 to ensure it's within entries array.
-  uint64_t hash = hash_key (key);
-  size_t index = (size_t)(hash & (uint64_t)(map->capacity - 1));
+    // AND hash with capacity-1 to ensure it's within entries array.
+    uint64_t hash = hash_key(key);
+    size_t index = (size_t) (hash & (uint64_t) (map->capacity - 1));
 
-  // Loop till we find an empty entry.
-  while (map->items[index].key != NULL)
+    // Loop till we find an empty entry.
+    while (map->items[index].key != NULL)
     {
-      if (strcmp (key, map->items[index].key) == 0)
+        if (strcmp(key, map->items[index].key) == 0)
         {
-          // Found key, return value.
-          return map->items[index].value;
+            // Found key, return value.
+            return map->items[index].value;
         }
-      // Key wasn't in this slot, move to next (linear probing).
-      index++;
-      if (index >= map->capacity)
+        // Key wasn't in this slot, move to next (linear probing).
+        index++;
+        if (index >= map->capacity)
         {
-          // At end of entries array, wrap around.
-          index = 0;
+            // At end of entries array, wrap around.
+            index = 0;
         }
     }
-  return NULL;
+    return NULL;
+}
+
+size_t
+HashMap_size(HashMap *map)
+{
+    return map->size;
 }

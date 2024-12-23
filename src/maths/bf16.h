@@ -25,6 +25,6 @@ typedef uint16_t bf16_t;
  * mantissa.
  * 5. Returns the resulting float32 number.
  */
-float bf16_to_float (bf16_t b);
+float bf16_to_float(bf16_t b);
 
 #endif

@@ -26,7 +26,7 @@ docs:
 	@cd docs && doxygen
 .PHONY: docs
 
-build: prepare
+build:
 	@cmake -B ./build -S . $(CMAKE_OPT)
 	@cd build && make
 .PHONY: build

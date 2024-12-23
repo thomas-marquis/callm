@@ -2,24 +2,24 @@
 #include "logging.h"
 
 char *
-CallmStatusCode_string (CallmStatusCode code)
+CallmStatusCode_string(CallmStatusCode code)
 {
-  if (code == ERROR)
+    if (code == ERROR)
     {
-      return "ERROR";
+        return "ERROR";
     }
-  else if (code == OK)
+    else if (code == OK)
     {
-      return "OK";
+        return "OK";
     }
-  else if (code == NOT_IMPLEMENTED)
+    else if (code == NOT_IMPLEMENTED)
     {
-      return "NOT_IMPLEMENTED";
+        return "NOT_IMPLEMENTED";
     }
-  else
+    else
     {
-      LOGF_ERROR ("%u: unknown code", code);
+        LOGF_ERROR("%u: unknown code", code);
     }
 
-  return NULL;
+    return NULL;
 }

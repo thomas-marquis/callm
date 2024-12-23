@@ -5,12 +5,14 @@
 
 typedef struct HashMap HashMap;
 
-HashMap *HashMap_new ();
+HashMap *HashMap_new();
 
-CallmStatusCode HashMap_free (HashMap *map);
+CallmStatusCode HashMap_free(HashMap *map);
 
-CallmStatusCode HashMap_insert (HashMap *map, const char *key, void *value);
+CallmStatusCode HashMap_insert(HashMap *map, const char *key, void *value);
 
-void *HashMap_get (HashMap *map, const char *key);
+void *HashMap_get(HashMap *map, const char *key);
 
-#endif // HASH_MAP_H
+size_t HashMap_size(HashMap *map);
+
+#endif  // HASH_MAP_H
