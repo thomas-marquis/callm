@@ -5,6 +5,8 @@
 #include "../utils/logging.h"
 #include "../utils/uthash.h"
 #include <assert.h>
+#include <climits>
+#include <cstdint>
 #include <fcntl.h>
 #include <jansson.h>
 #include <pcre2.h>
@@ -66,8 +68,10 @@ load_file_content(char *file_path)
 }
 
 static CallmStatusCode
-parse_tokenizer_file(char *content, Token *encoder)
+parse_tokenizer_file(char *content, Token **encoder)
 {
+    // Token *encoder = NULL;
+
     json_error_t error;
     json_t *root = json_loads(content, 0, &error);
     if (!root)
@@ -85,8 +89,7 @@ parse_tokenizer_file(char *content, Token *encoder)
     int i = 0;
     json_object_foreach(vocab_object, key, value)
     {
-        Token *t;
-        t = (Token *) malloc(sizeof(Token));
+        Token *t = (Token *) malloc(sizeof(Token));
         int t_id;
         if (json_unpack(value, "i", &t_id) == -1)
         {
@@ -94,12 +97,16 @@ parse_tokenizer_file(char *content, Token *encoder)
             return ERROR;
         }
         t->id = t_id;
-        t->token = key;
-        HASH_ADD_STR(encoder, token, t);
+        // LOGF_INFO("COUCOU Token: %s; id: %d; len=%d", key, t_id, (int) strlen(key));
+        t->token = (char *) malloc((strlen(key) + 1) * sizeof(char));
+        strcpy(t->token, key);
+        HASH_ADD_STR(*encoder, token, t);
         i++;
     }
 
-    LOGF_INFO("Parsed %d items from vocab object", HASH_COUNT(encoder));
+    LOGF_INFO("Parsed %d items from vocab object", HASH_COUNT(*encoder));
+
+    // tokenizer->encoder = encoder;
 
     return OK;
 }
@@ -140,7 +147,7 @@ Tokenizer_new(char *file_path)
     tokenizer->encoder = NULL;
 
     LOG_INFO("Creating encoder from json");
-    if (parse_tokenizer_file(json_content, tokenizer->encoder) != OK)
+    if (parse_tokenizer_file(json_content, &tokenizer->encoder) != OK)
     {
         LOG_ERROR("Fail to parse encoder from json");
         exit(1);
@@ -150,6 +157,7 @@ Tokenizer_new(char *file_path)
     Token *t;
     for (t = tokenizer->encoder; t != NULL; t = t->hh.next)
     {
+        t = memcpy(malloc(sizeof(Token)), t, sizeof(Token));
         HASH_ADD_INT(tokenizer->decoder, id, t);
     }
 
@@ -236,7 +244,6 @@ split_text(char *input_str, pcre2_code *re, LinkedList *out)
         return ERROR;
     }
     ovector = pcre2_get_ovector_pointer(match_data);
-    LOGF_INFO("Match succeeded at offset %d", (int) ovector[0]);
 
     /* The output vector wasn't big enough. This should not happen, because we used
     pcre2_match_data_create_from_pattern() above. */
@@ -251,11 +258,13 @@ split_text(char *input_str, pcre2_code *re, LinkedList *out)
     {
         PCRE2_SPTR substring_start = (PCRE2_SPTR) input_str + ovector[2 * i];
         size_t substring_length = ovector[2 * i + 1] - ovector[2 * i];
-        LOGF_INFO("%2d: %.*s", i, (int) substring_length, (char *) substring_start);
+        // LOGF_INFO("%2d: (%d) %.*s", i, (int) substring_length, (int) substring_length, (char *) substring_start);
 
         char *buffer = (char *) malloc(substring_length * sizeof(char) + 1);
         CHECK_MALLOC(buffer, "error allocating string buffer for first match");
-        strcpy(buffer, (char *) substring_start);
+        strncpy(buffer, (char *) substring_start, substring_length);
+        buffer[substring_length] = '\0';
+
         LinkedList_add(out, buffer);
     }
 
@@ -308,7 +317,6 @@ split_text(char *input_str, pcre2_code *re, LinkedList *out)
             return ERROR;
         }
 
-        LOGF_INFO("Match succeeded again at offset %d", (int) ovector[0]);
         if (rc == 0)
         {
             LOG_ERROR("ovector was not big enough for all the captured substrings");
@@ -318,11 +326,13 @@ split_text(char *input_str, pcre2_code *re, LinkedList *out)
         {
             PCRE2_SPTR substring_start = (PCRE2_SPTR) input_str + ovector[2 * i];
             size_t substring_length = ovector[2 * i + 1] - ovector[2 * i];
-            LOGF_INFO("%2d: %.*s", i, (int) substring_length, (char *) substring_start);
+            // LOGF_INFO("%2d: (%d) %.*s", i, (int) substring_length, (int) substring_length, (char *) substring_start);
 
             char *buffer = (char *) malloc(substring_length * sizeof(char) + 1);
             CHECK_MALLOC(buffer, "error allocating string buffer");
-            strcpy(buffer, (char *) substring_start);
+            strncpy(buffer, (char *) substring_start, substring_length);
+            buffer[substring_length] = '\0';
+
             LinkedList_add(out, buffer);
         }
     }
@@ -332,36 +342,163 @@ split_text(char *input_str, pcre2_code *re, LinkedList *out)
     return OK;
 }
 
+typedef unsigned int Rank;
+static Rank RANK_MAX = UINT_MAX;
+
+static Rank
+get_rank(Token **encoder, char *piece, size_t parts_len, Rank *parts_ranks, size_t *parts_sizes, size_t i)
+{
+    if ((i + 3) < parts_len)
+    {
+        Token *tmp;
+        char *key_start = piece + parts_sizes[i];
+        char *key_end = piece + parts_sizes[i + 3];
+        char key[parts_sizes[i + 3] - parts_sizes[i] + 1];
+        strncpy(key, key_start, parts_sizes[i + 3] - parts_sizes[i]);
+        HASH_FIND_STR(*encoder, key, tmp);
+        if (tmp != NULL)
+        {
+            return tmp->id;
+        }
+        else
+        {
+            return RANK_MAX;
+        }
+    }
+    else
+    {
+        return RANK_MAX;
+    }
+}
+
+static CallmStatusCode
+remove_part(size_t *parts_sizes, Rank *parts_ranks, size_t *size, size_t index)
+{
+    if (index >= *size)
+    {
+        LOG_ERROR("Index out of bounds");
+        return ERROR;
+    }
+
+    for (size_t i = index; i < *size - 1; i++)
+    {
+        parts_sizes[i] = parts_sizes[i + 1];
+        parts_ranks[i] = parts_ranks[i + 1];
+    }
+
+    (*size)--;
+    return OK;
+}
+
 CallmStatusCode
 Tokenizer_encode(Tokenizer *tokenizer, const char *input_str, int **token_ids)
 {
 
     LinkedList *text_parts = LinkedList_new();
+    LinkedList *tokens_ids = LinkedList_new();
+
     if (split_text((char *) input_str, tokenizer->ordinary_regex, text_parts) != OK)
     {
         LOG_ERROR("Error splitting text");
-        return ERROR;
-    }
 
-    if (text_parts == NULL)
-    {
-        LOG_ERROR("IS NULL");
+        LinkedList_free(text_parts);
+        LinkedList_free(tokens_ids);
+        return ERROR;
     }
 
     LOG_INFO("Printing text parts");
     LOGF_INFO("Size: %zu", LinkedList_size(text_parts));
 
     char *head_value = (char *) LinkedList_get_head_value(text_parts);
-    LOGF_INFO("Head value: %s", head_value);
+    LOGF_INFO("First part: %s", head_value);
 
+    Token *current_token;
     LINKED_LIST_ITER(text_parts, item)
     {
-        printf("item: %s\n", (char *) LinkedList_get_head_value(item));
+        HASH_FIND_STR(tokenizer->encoder, LinkedList_get_head_value(item), current_token);
+        if (current_token != NULL)
+        {
+            LOGF_INFO("Token found: %s with id=%d", current_token->token, current_token->id);
+        }
+        else
+        {
+            LOGF_INFO("Token not found: %s", (char *) LinkedList_get_head_value(item));
+            char *piece = (char *) LinkedList_get_head_value(item);
+
+            size_t piece_len = strlen(piece);
+            size_t parts_len = piece_len + 1;
+            size_t *parts_sizes = (size_t *) malloc(parts_len * sizeof(size_t));
+            Rank *parts_ranks = (Rank *) malloc(parts_len * sizeof(Rank));
+
+            Rank min_rank = RANK_MAX;
+            size_t min_size = SIZE_MAX;
+
+            char pair[2];
+
+            for (int i = 0; i < piece_len - 1; i++)
+            {
+                char *pair_start = piece + i;
+                strncpy(pair, pair_start, 2);
+
+                Token *tmp_tok;
+                HASH_FIND_STR(tokenizer->encoder, pair, tmp_tok);
+                Rank rank;
+                if (tmp_tok == NULL)
+                {
+                    rank = RANK_MAX;
+                }
+                else
+                {
+                    rank = tmp_tok->id;
+                }
+
+                if (rank < min_rank)
+                {
+                    min_rank = rank;
+                    min_size = i;
+                }
+                parts_ranks[i] = rank;
+                parts_sizes[i] = i;
+            }
+            parts_ranks[piece_len - 1] = RANK_MAX;
+            parts_ranks[piece_len] = RANK_MAX;
+
+            while (min_rank != RANK_MAX)
+            {
+                size_t i = min_size;
+                if (i > 0)
+                {
+                    parts_ranks[i - 1]
+                        = get_rank(&tokenizer->encoder, piece, parts_len, parts_ranks, parts_sizes, i - 1);
+                }
+                parts_ranks[i] = get_rank(&tokenizer->encoder, piece, parts_len, parts_ranks, parts_sizes, i);
+                remove_part(parts_sizes, parts_ranks, &parts_len, i + 1);
+
+                min_rank = RANK_MAX;
+                min_size = SIZE_MAX;
+
+                for (int i = 0; i < parts_len - 1; i++)
+                {
+                    if (parts_ranks[i] < min_rank)
+                    {
+                        min_rank = parts_ranks[i];
+                        min_size = i;
+                    }
+                }
+            }
+
+            // _byte_pair_merge(ranks, piece)
+            //     .windows(2)
+            //     .map(|part| ranks[&piece[part[0].0..part[1].0]])
+            //     .collect()
+            free(parts_sizes);
+            free(parts_ranks);
+        }
+        free(LinkedList_get_head_value(item));
     }
 
-    LinkedList *tokens_ids;
-    // LinkedIntList_print(tokens_ids);
-    // LinkedIntList_free(tokens_ids);
+    LinkedList_free(text_parts);
+    LinkedList_free(tokens_ids);
 
     // Etape d'encodage sans tokens spéciaux:
     // appliquer la regexp et ittérer sur les find

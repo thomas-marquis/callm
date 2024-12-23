@@ -46,6 +46,7 @@ LinkedList_add(LinkedList *list, void *value)
     else
     {
         LinkedList *new_node = LinkedList_new();
+        (*new_node).value = value;
         LinkedList *current = list;
         while (current->next != NULL)
         {
