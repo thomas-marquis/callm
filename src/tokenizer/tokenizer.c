@@ -5,8 +5,6 @@
 #include "../utils/logging.h"
 #include "../utils/uthash.h"
 #include <assert.h>
-#include <climits>
-#include <cstdint>
 #include <fcntl.h>
 #include <jansson.h>
 #include <pcre2.h>
@@ -153,15 +151,21 @@ Tokenizer_new(char *file_path)
         exit(1);
     }
 
-    LOG_INFO("Encoder created. Creating decoder");
     Token *t;
     for (t = tokenizer->encoder; t != NULL; t = t->hh.next)
     {
         t = memcpy(malloc(sizeof(Token)), t, sizeof(Token));
         HASH_ADD_INT(tokenizer->decoder, id, t);
     }
+    LOG_INFO("Encoder created. Creating decoder");
 
+    for (t = tokenizer->decoder; t != NULL; t = t->hh.next)
+    {
+        t = memcpy(malloc(sizeof(Token)), t, sizeof(Token));
+        HASH_ADD_STR(tokenizer->decoder, token, t);
+    }
     LOG_INFO("Decoder created. Compiling ordinary tokens regex");
+
     struct get_regexp_res res = get_regex();
     if (res.status != OK)
     {
@@ -345,7 +349,7 @@ split_text(char *input_str, pcre2_code *re, LinkedList *out)
 typedef unsigned int Rank;
 static Rank RANK_MAX = UINT_MAX;
 
-static Rank
+static inline Rank
 get_rank(Token **encoder, char *piece, size_t parts_len, Rank *parts_ranks, size_t *parts_sizes, size_t i)
 {
     if ((i + 3) < parts_len)
@@ -354,6 +358,7 @@ get_rank(Token **encoder, char *piece, size_t parts_len, Rank *parts_ranks, size
         char *key_start = piece + parts_sizes[i];
         char *key_end = piece + parts_sizes[i + 3];
         char key[parts_sizes[i + 3] - parts_sizes[i] + 1];
+        // LOG_INFO("COUCOU");
         strncpy(key, key_start, parts_sizes[i + 3] - parts_sizes[i]);
         HASH_FIND_STR(*encoder, key, tmp);
         if (tmp != NULL)
@@ -371,7 +376,7 @@ get_rank(Token **encoder, char *piece, size_t parts_len, Rank *parts_ranks, size
     }
 }
 
-static CallmStatusCode
+static inline CallmStatusCode
 remove_part(size_t *parts_sizes, Rank *parts_ranks, size_t *size, size_t index)
 {
     if (index >= *size)
@@ -391,9 +396,8 @@ remove_part(size_t *parts_sizes, Rank *parts_ranks, size_t *size, size_t index)
 }
 
 CallmStatusCode
-Tokenizer_encode(Tokenizer *tokenizer, const char *input_str, int **token_ids)
+Tokenizer_encode(Tokenizer *tokenizer, const char *input_str, int **token_ids, int *token_count)
 {
-
     LinkedList *text_parts = LinkedList_new();
     LinkedList *tokens_ids = LinkedList_new();
 
@@ -419,6 +423,7 @@ Tokenizer_encode(Tokenizer *tokenizer, const char *input_str, int **token_ids)
         if (current_token != NULL)
         {
             LOGF_INFO("Token found: %s with id=%d", current_token->token, current_token->id);
+            LinkedList_add(tokens_ids, &current_token->id);
         }
         else
         {
@@ -426,6 +431,10 @@ Tokenizer_encode(Tokenizer *tokenizer, const char *input_str, int **token_ids)
             char *piece = (char *) LinkedList_get_head_value(item);
 
             size_t piece_len = strlen(piece);
+            if (piece_len == 1)
+            {
+                HASH_FIND_STR(tokenizer->encoder, piece, current_token);
+            }
             size_t parts_len = piece_len + 1;
             size_t *parts_sizes = (size_t *) malloc(parts_len * sizeof(size_t));
             Rank *parts_ranks = (Rank *) malloc(parts_len * sizeof(Rank));
@@ -445,11 +454,13 @@ Tokenizer_encode(Tokenizer *tokenizer, const char *input_str, int **token_ids)
                 Rank rank;
                 if (tmp_tok == NULL)
                 {
+                    LOGF_INFO("Pair: %s - Not found in encoder", pair);
                     rank = RANK_MAX;
                 }
                 else
                 {
                     rank = tmp_tok->id;
+                    LOGF_INFO("Pair: %s - Found in rank %d", pair, rank);
                 }
 
                 if (rank < min_rank)
@@ -462,10 +473,14 @@ Tokenizer_encode(Tokenizer *tokenizer, const char *input_str, int **token_ids)
             }
             parts_ranks[piece_len - 1] = RANK_MAX;
             parts_ranks[piece_len] = RANK_MAX;
+            parts_sizes[piece_len - 1] = piece_len - 1;
+            parts_sizes[piece_len] = piece_len;
 
             while (min_rank != RANK_MAX)
             {
                 size_t i = min_size;
+                // LOG_INFO("COUCOU");
+                LOGF_INFO("Min rank: %d; Min size: %zu; Parts len: %zu", min_rank, min_size, parts_len);
                 if (i > 0)
                 {
                     parts_ranks[i - 1]
@@ -487,17 +502,49 @@ Tokenizer_encode(Tokenizer *tokenizer, const char *input_str, int **token_ids)
                 }
             }
 
+            int part_start, part_end;
+            for (int i = 0; i < parts_len - 1; i++)
+            {
+                part_start = parts_sizes[i];
+                part_end = parts_sizes[i + 1];
+                char *part = (char *) malloc(part_end - part_start + 1);
+                strncpy(part, piece + part_start, part_end - part_start);
+                part[part_end - part_start] = '\0';
+                LOGF_INFO("Part: %s", part);
+                HASH_FIND_STR(tokenizer->encoder, part, current_token);
+                if (current_token != NULL)
+                {
+                    LOGF_INFO("Part found: %s with id=%d", current_token->token, current_token->id);
+                    LinkedList_add(tokens_ids, &current_token->id);
+                }
+                else
+                {
+                    LOGF_INFO("Part not found in voc: %s", part);
+                    // LOG_ERROR("Part not found");
+                }
+            }
+
             // _byte_pair_merge(ranks, piece)
             //     .windows(2)
             //     .map(|part| ranks[&piece[part[0].0..part[1].0]])
             //     .collect()
             free(parts_sizes);
             free(parts_ranks);
-        }
+        }  // end else: token not found
         free(LinkedList_get_head_value(item));
     }
 
     LinkedList_free(text_parts);
+
+    *token_count = LinkedList_size(tokens_ids);
+    *token_ids = (int *) malloc(*token_count * sizeof(int));
+    int i = 0;
+    LINKED_LIST_ITER(tokens_ids, item)
+    {
+        (*token_ids)[i] = *((int *) LinkedList_get_head_value(item));
+        i++;
+    }
+
     LinkedList_free(tokens_ids);
 
     // Etape d'encodage sans tokens spéciaux:
@@ -505,6 +552,18 @@ Tokenizer_encode(Tokenizer *tokenizer, const char *input_str, int **token_ids)
     // récupérer l'id du token correspondant dans l'encoder s'il existe
     // Sinon,
     return OK;
+}
+
+char *
+Tokenizer_decode_single(Tokenizer *tokenizer, int token_id)
+{
+    Token *token;
+    HASH_FIND_INT(tokenizer->decoder, &token_id, token);
+    if (token == NULL)
+    {
+        return "";
+    }
+    return token->token;
 }
 
 void

@@ -63,11 +63,25 @@ main()
 
     LOG_INFO("Encoding Otis monologue...");
     int *token_ids;
-    if (Tokenizer_encode(tokenizer, monologue_otis, &token_ids) != OK)
+    int token_count;
+    if (Tokenizer_encode(tokenizer, monologue_otis, &token_ids, &token_count) != OK)
     {
         LOG_ERROR("Error encoding tokens");
         return 1;
     }
+
+    printf("[");
+    for (int i = 0; i < token_count; i++)
+    {
+        printf("%d, ", token_ids[i]);
+    }
+    printf("]\n\n");
+    printf("[");
+    for (int i = 0; i < token_count; i++)
+    {
+        printf("%s, ", Tokenizer_decode_single(tokenizer, token_ids[i]));
+    }
+    printf("]\n");
 
     // matrix_t *sub_mat = Matrix_slice_line(emb_mat, 0, 1);
     // Matrix_print(sub_mat);
