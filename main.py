@@ -33,15 +33,22 @@ if __name__ == "__main__":
     # file_path = "my_tensor.safetensors"
     # should_load_bf16_st_correctly()
     # parse_and_display_header(file_path)
-    model_path = "tokenizer.model"
-    pat_str = r"(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"  # noqa: E501
-    mergeable_ranks = load_tiktoken_bpe(model_path)
-    model = tiktoken.Encoding(
-        name=Path(model_path).name,
-        pat_str=pat_str,
-        mergeable_ranks=mergeable_ranks,
-        special_tokens=dict(),
-    )
+
+    with open("tokenizer.json", "r") as f:
+        tokenizer_json = f.read()
+
+    model = tiktoken.get_encoding("tokenizer.json")
+    # model = tiktoken.Encoding.from_json(tokenizer_json)
+
+    # model_path = "tokenizer.model"
+    # pat_str = r"(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"  # noqa: E501
+    # mergeable_ranks = load_tiktoken_bpe(model_path)
+    # model = tiktoken.Encoding(
+    #     name=Path(model_path).name,
+    #     pat_str=pat_str,
+    #     mergeable_ranks=mergeable_ranks,
+    #     special_tokens=dict(),
+    # )
     tok_ids = model.encode(monologue_otis)
     print(tok_ids)
     for tok_id in tok_ids:
@@ -87,4 +94,16 @@ ACTUAL
 11, 346, 3427, 183, 83, 67, 263, 66, 447, 72, 76, 64, 79, 283, 784, 165, 2933, 73, 283, 6634, 71, 2005, 156, 268, 83, 265, 79, 265, 303, 265, 359, 68, 66, 263, 267, 2739, 302, 72, 263, 76, 165, 66, 276, 2467
 2, 361, 11, 1764, 285, 67, 336, 64, 258, 11, 447, 72, 9258, 275, 11, 375, 332, 12, 166, 10367, 82, 318, 79, 273, 76, 268, 83, 156, 2727, 76, 295, 83, 265, 2933, 82, 261, 85, 292, 68, 451, 4355, 66, 316, 76, 
 359, 64, 332, 165, 11, 156, 69, 2192, 265, 273, 67, 263, 11, 273, 67, 263, 451, 708, 72, ]
+
+[Mais, ,, v, ou, s, s, av, ez, ,, mo, i, je, ne, c, ro, is, p, as, qu, il, y, a, it, de, b, on, ne, ou, de, ma, u, va, is, e, s, it, u, at, i, on, ., M, oi, ,, si, je, de, va, is, r, é, s, um, er, ma, v, ie,
+ au, j, ou, rd, h, ui, av, ec, v, ou, s, ,, je, d, ir, a, is, q, ue, c, e, st, d, ab, or, d, d, es, re, nc, on, t, re, s, ,, d, es, g, en, s, qu, i, m, on, t, t, en, du, la, ma, in, ,, pe, ut, -, ê, tre, à, 
+un, m, om, en, t, o, ù, je, ne, p, ou, va, is, p, as, ,, o, ù, j, é, ta, is, se, ul, ch, ez, mo, i, ., Et, c, e, st, as, se, z, c, ur, ie, ux, de, se, di, re, q, ue, le, s, h, as, ar, ds, ,, le, s, re, nc, o
+n, t, re, s, f, or, g, en, t, un, e, de, st, in, é, e, P, ar, ce, q, ue, qu, an, d, on, a, le, go, û, t, de, la, ch, o, se, ,, qu, an, d, on, a, le, go, û, t, de, la, ch, o, se, bi, en, fa, it, e, ,, le, be,
+ au, ge, st, e, ,, p, ar, fo, is, on, ne, tr, ou, ve, p, as, l, in, t, er, lo, c, ut, e, ur, en, fa, ce, ,, je, d, ir, a, is, ,, le, mi, ro, ir, qu, i, v, ou, s, a, id, e, à, av, an, c, er, ., Al, or, s, ce,
+ n, e, st, p, as, m, on, c, as, ,, c, om, me, je, le, d, is, a, is, l, à, ,, pu, is, q, ue, mo, i, au, c, on, tr, ai, re, ,, j, ai, pu, ;, et, je, d, is, m, er, ci, à, la, v, ie, ,, je, l, ui, d, is, m, er, 
+ci, ,, je, ch, an, te, la, v, ie, ,, je, d, an, se, la, v, ie, Je, ne, su, is, qu, am, ou, r, !, Et, f, in, a, le, m, en, t, ,, qu, an, d, be, a, uc, ou, p, de, g, en, s, au, j, ou, rd, h, ui, me, d, is, en,
+ t, :, «, Ma, is, c, om, m, en, t, fa, is, -t, u, p, ou, r, av, o, ir, c, et, te, h, um, an, it, é, ?, », E, h, bi, en, je, le, ur, r, é, p, on, ds, tr, è, s, s, im, p, le, m, en, t, ,, je, le, ur, d, is, q,
+ ue, c, e, st, ce, go, û, t, de, l, am, ou, r, ,, ce, go, û, t, d, on, c, qu, i, m, a, p, ou, ss, é, au, j, ou, rd, h, ui, à, en, t, re, p, re, nd, re, un, e, c, on, st, ru, ct, i, on, m, é, c, an, iq, ue, ,
+, ma, is, d, em, a, in, ,, qu, i, sa, it, ,, pe, ut, -, ê, tre, s, im, p, le, m, en, t, à, me, m, et, t, re, au, s, er, v, ic, e, de, la, c, om, m, un, a, ut, é, ,, à, f, ai, re, le, d, on, ,, le, d, on, de,
+ so, i, ]
 """

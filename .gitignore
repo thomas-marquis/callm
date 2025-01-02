@@ -16,3 +16,4 @@ docs
 /out
 /compile_commands.json
 /tokenizer.model
+.ipynb_checkpoints

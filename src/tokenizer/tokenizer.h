@@ -11,7 +11,7 @@ Tokenizer *Tokenizer_new(char *filepath);
 
 CallmStatusCode Tokenizer_encode(Tokenizer *tokenizer, const char *input_str, int **token_ids, int *token_count);
 
-char *Tokenizer_decode_single(Tokenizer *tokenizer, int token_id);
+char *Tokenizer_decode_single(Tokenizer *tokenizer, int out_token_id);
 
 CallmStatusCode Tokenizer_free(Tokenizer *tokenizer);
 
