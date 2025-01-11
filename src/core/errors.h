@@ -10,6 +10,12 @@
         printerr("Error allocating memory for %s\n", msg);                                                             \
         return 1;                                                                                                      \
     }
+#define CHECK_MALLOC_RET_NULL(ptr, msg)                                                                                \
+    if (ptr == NULL)                                                                                                   \
+    {                                                                                                                  \
+        printerr("Error allocating memory for %s\n", msg);                                                             \
+        return NULL;                                                                                                   \
+    }
 #define CHECK_MALLOC_PANIC(ptr, msg)                                                                                   \
     if (ptr == NULL)                                                                                                   \
     {                                                                                                                  \
@@ -21,6 +27,12 @@
     {                                                                                                                  \
         printf(stderr, msg, __VA_ARGS__);                                                                              \
         return ERROR;                                                                                                  \
+    }
+#define CHECK_STATUS_RET_NULL(status, msg, ...)                                                                        \
+    if (status != OK)                                                                                                  \
+    {                                                                                                                  \
+        printf(stderr, msg, __VA_ARGS__);                                                                              \
+        return NULL;                                                                                                   \
     }
 #define CHECK_STATUS_PANIC(status, msg, ...)                                                                           \
     if (status != OK)                                                                                                  \
