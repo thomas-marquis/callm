@@ -1,7 +1,7 @@
 set(CALLM_UTILS_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/errors.c"
-                        "${CMAKE_CURRENT_SOURCE_DIR}/linked_list.c")
+                        "${CMAKE_CURRENT_SOURCE_DIR}/base64.c")
 set(CALLM_UTILS_HEADERS
-    "${CMAKE_CURRENT_SOURCE_DIR}/linked_list.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/base64.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/errors.h" "${CMAKE_CURRENT_SOURCE_DIR}/json.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/logging.h")
 

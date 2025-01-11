@@ -18,9 +18,7 @@ include(AddGitSubmodule)
 include(Docs)
 include(CPM)
 
-find_package(Python REQUIRED)
-
-# include_directories("${PYTHON_INCLUDE_DIRS}")
+# find_package(Python REQUIRED) find_package(OpenSSL REQUIRED)
 
 add_git_submodule(external/jansson)
 cpmaddpackage("gh:PCRE2Project/pcre2#pcre2-10.44")
@@ -34,22 +32,7 @@ endif()
 
 include_directories(${JANSSON_INCLUDE_DIRS})
 
-set(CALLM_ROOT_EXE "${CMAKE_CURRENT_SOURCE_DIR}/main.c")
-
 add_subdirectory(src)
-
-add_executable(callm ${CALLM_ROOT_EXE})
-
-target_link_libraries(
-  callm
-  PUBLIC callm_utils
-         callm_tokenizer
-         callm_maths
-         jansson
-         pcre2-8
-         pcre2-16
-         pcre2-32
-         pcre2-posix)
 
 # set(CMAKE_BUILD_TYPE Debug) target_compile_options(callm PRIVATE -g)
 if(ENABLE_TESTING)

@@ -1,3 +1,3 @@
-add_subdirectory(maths)
-add_subdirectory(utils)
+add_subdirectory(core)
 add_subdirectory(tokenizer)
+add_subdirectory(main)

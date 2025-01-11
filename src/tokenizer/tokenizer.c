@@ -7,6 +7,8 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <jansson.h>
+#include <openssl/bio.h>
+#include <openssl/evp.h>
 #include <pcre2.h>
 #include <regex.h>
 #include <stddef.h>
@@ -35,8 +37,47 @@ struct Tokenizer
     pcre2_code *ordinary_regex;
 };
 
+// Function to decode base64
+static unsigned char *
+base64_decode(const char *input, int length, int *out_len)
+{
+    BIO *b64, *bmem;
+    unsigned char *buffer = (unsigned char *) malloc(length);
+    b64 = BIO_new(BIO_f_base64());
+    bmem = BIO_new_mem_buf(input, length);
+    bmem = BIO_push(bmem, b64);
+    *out_len = BIO_read(bmem, buffer, length);
+    BIO_free_all(bmem);
+    return buffer;
+}
+
+static CallmStatusCode
+load_file_content(char *path, char **out_buffer)
+{
+    FILE *file = fopen(path, "rb");
+    if (!file)
+    {
+        LOG_ERROR("Failed to open file");
+        return ERROR;
+    }
+
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char *contents = (char *) malloc(file_size + 1);
+    CHECK_MALLOC(contents, "error allocating file content buffer");
+
+    fread(contents, 1, file_size, file);
+    fclose(file);
+    contents[file_size] = '\0';
+
+    *out_buffer = contents;
+    return OK;
+}
+
 static char *
-load_file_content(char *file_path)
+load_json_file_content(char *file_path)
 {
     FILE *file = fopen(file_path, "r");
     if (file == NULL)
@@ -58,7 +99,7 @@ load_file_content(char *file_path)
 
     fclose(file);
 
-    char *content = (char *) malloc((file_size + 1) * sizeof(char));
+    char *content = (char *) malloc(file_size + 1);
     strcpy(content, buffer);
 
     free(buffer);
@@ -66,8 +107,57 @@ load_file_content(char *file_path)
 }
 
 static CallmStatusCode
-parse_tokenizer_file(char *content, Token **encoder)
+make_encoder_from_model_file(char *file_path, Token **encoder)
 {
+    char *content;
+    if (load_file_content(file_path, &content) != OK)
+    {
+        LOG_ERROR("Failed to load model file content");
+        return ERROR;
+    }
+
+    char *line = strtok(content, "\n");
+    while (line != NULL)
+    {
+        char *token = strtok(line, " ");
+        char *rank_str = strtok(NULL, " ");
+        LOG_DEBUG(line);
+        if (token && rank_str)
+        {
+            Token *t = (Token *) malloc(sizeof(Token));
+            int out_len;
+            unsigned char *decoded_token = base64_decode(token, strlen(token), &out_len);
+            int rank = atoi(rank_str);
+            LOGF_DEBUG("Token: %s; Rank: %d", decoded_token, rank);
+            exit(1);
+            t->token = (char *) malloc(out_len + 1);
+            strcpy(t->token, (char *) decoded_token);
+            t->id = rank;
+
+            free(decoded_token);
+        }
+        else
+        {
+            LOGF_ERROR("Failed to parse line: '%s'", line);
+        }
+        line = strtok(NULL, "\n");
+    }
+
+    free(content);
+
+    return OK;
+}
+
+static CallmStatusCode
+make_encoder_from_json(char *file_path, Token **encoder)
+{
+    char *content;
+    if (load_file_content(file_path, &content) != OK)
+    {
+        LOG_ERROR("Failed to load json file content");
+        return ERROR;
+    }
+
     json_error_t error;
     json_t *root = json_loads(content, 0, &error);
     if (!root)
@@ -93,7 +183,7 @@ parse_tokenizer_file(char *content, Token **encoder)
             return ERROR;
         }
         t->id = t_id;
-        t->token = (char *) malloc((strlen(key) + 1) * sizeof(char));
+        t->token = malloc((strlen(key) + 1));
         strcpy(t->token, key);
         HASH_ADD_STR(*encoder, token, t);
         i++;
@@ -102,6 +192,19 @@ parse_tokenizer_file(char *content, Token **encoder)
     LOGF_INFO("Parsed %d items from vocab object", HASH_COUNT(*encoder));
 
     return OK;
+}
+
+static CallmStatusCode
+make_encoder(char *file_path, Token **encoder)
+{
+    if (1)
+    {
+        return make_encoder_from_model_file(file_path, encoder);
+    }
+    else
+    {
+        return make_encoder_from_json(file_path, encoder);
+    }
 }
 
 struct get_regexp_res
@@ -132,17 +235,18 @@ get_regex()
 Tokenizer *
 Tokenizer_new(char *file_path)
 {
-    LOG_INFO("Creating tokenizer from file");
-    char *json_content = load_file_content(file_path);
+    LOG_INFO("Creating encoder from file");
 
     Tokenizer *tokenizer = (Tokenizer *) malloc(sizeof(struct Tokenizer));
+    CHECK_MALLOC_PANIC(tokenizer, "init tokenizer")
+
     tokenizer->decoder = NULL;
     tokenizer->encoder = NULL;
 
-    LOG_INFO("Creating encoder from json");
-    if (parse_tokenizer_file(json_content, &tokenizer->encoder) != OK)
+    LOG_INFO("Creating encoder...");
+    if (make_encoder(file_path, &tokenizer->encoder) != OK)
     {
-        LOG_ERROR("Fail to parse encoder from json");
+        LOGF_ERROR("Fail to build encoder from file %s", file_path);
         exit(1);
     }
 
@@ -384,6 +488,16 @@ remove_part(size_t *parts_sizes, Rank *parts_ranks, size_t *size, size_t index)
     return OK;
 }
 
+void
+printCharInBinary(unsigned char c)
+{
+    for (int i = 7; i >= 0; i--)
+    {
+        printf("%d", (c >> i) & 1);
+    }
+    printf("\n");
+}
+
 static CallmStatusCode
 byte_pair_encode(Token *encoder, char *piece, LinkedList *out_token_ids)
 {
@@ -526,9 +640,12 @@ Tokenizer_encode(Tokenizer *tokenizer, const char *input_str, int **out_token_id
     LOGF_INFO("First part: %s", head_value);
 
     Token *current_token;
+    char *piece;
     LINKED_LIST_ITER(pieces, item)
     {
-        HASH_FIND_STR(encoder, LinkedList_get_head_value(item), current_token);
+        piece = LinkedList_get_head_value(item);
+        LOGF_INFO("========== '%s' ===========", piece);
+        HASH_FIND_STR(encoder, piece, current_token);
         if (current_token != NULL)
         {
             LOGF_INFO("Token found: %s with id=%d", current_token->token, current_token->id);
@@ -567,6 +684,34 @@ Tokenizer_encode(Tokenizer *tokenizer, const char *input_str, int **out_token_id
     // appliquer la regexp et ittérer sur les find
     // récupérer l'id du token correspondant dans l'encoder s'il existe
     // Sinon,
+    Token *tmp;
+    char *expected = " vous";
+    while (*expected != '\0')
+    {
+        // printCharInBinary(*(expected++));
+        printf("%x ", *(expected++));
+    }
+    printf("\n");
+    int tmp_id = 9189;
+    HASH_FIND_INT(tokenizer->decoder, &tmp_id, tmp);
+    char *actual = (char *) malloc(strlen(tmp->token));
+    strcpy(actual, tmp->token);
+    while (*actual != '\0')
+    {
+        printf("%x ", *actual);
+        actual++;
+        // printCharInBinary(*(actual++));
+    }
+    printf("\n%s\n", tmp->token);
+    // HASH_FIND_STR(encoder, "Ġvous", tmp);
+    if (tmp != NULL)
+    {
+        LOGF_INFO("COUCOU Token found: %s with id=%d", tmp->token, tmp->id);
+    }
+    else
+    {
+        LOG_ERROR("COUCOU Token not found");
+    }
     return OK;
 }
 
