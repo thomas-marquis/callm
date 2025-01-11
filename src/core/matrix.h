@@ -1,7 +1,7 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
-#include "../utils/errors.h"
+#include "errors.h"
 #include <math.h>
 
 typedef struct

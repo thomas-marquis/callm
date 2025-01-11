@@ -1,5 +1,5 @@
-#include "./matrix.h"
-#include "../utils/logging.h"
+#include "matrix.h"
+#include "logging.h"
 #include <immintrin.h>
 #include <stdio.h>
 #include <stdlib.h>

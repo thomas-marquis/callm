@@ -1,8 +1,9 @@
-#include "./safetensors.h"
-#include "../utils/json.h"
-#include "../utils/logging.h"
-#include "./bf16.h"
 #include "safetensors.h"
+#include "bf16.h"
+#include "json.h"
+#include "logging.h"
+#include "safetensors.h"
+#include "uthash.h"
 #include <fcntl.h>
 #include <jansson.h>
 #include <stdint.h>
@@ -13,7 +14,25 @@
 #include <unistd.h>
 
 #define HEADER_SIZE_PART_SIZE sizeof(uint64_t)
-#define DEFAULT_HASH_TABLE_SIZE 16
+
+struct SafetensorsLayer
+{
+    enum Dtype dtype;
+    int *shape;
+    int shape_size;
+    int *data_offset;
+    UT_hash_handle hh;
+};
+
+struct Safetensors
+{
+    char *raw_content;
+    SafetensorsLayer *layer_table;
+    json_t *json_root;
+    void *map;
+    int map_size;
+    uint64_t header_size;
+};
 
 static CallmStatusCode
 SafetensorsLayer_parse(json_t *layer, SafetensorsLayer *h)
@@ -140,7 +159,7 @@ Safetensors_new(const char *file_path)
     h->map = NULL;
     h->map_size = filesize;
     h->header_size = header_size;
-    h->layer_table = HashTable_new(DEFAULT_HASH_TABLE_SIZE);
+    h->layer_table = NULL;
 
     h->raw_content = (char *) malloc(strlen(header_content) + 1);
     CHECK_MALLOC_PANIC(h->raw_content, "safetensors header content");
@@ -277,23 +296,28 @@ Safetensors_load_matrix(const char *tensor_name, const Safetensors *header)
 }
 
 CallmStatusCode
-Safetensors_get_layer_by_name(const Safetensors *h, const char *layer_name, SafetensorsLayer *layer)
+Safetensors_get_layer_by_name(const Safetensors *h, const char *layer_name, SafetensorsLayer **layer)
 {
-    HashTableNode *node = HashTable_get(h->layer_table, layer_name);
-    if (node == NULL)
+    SafetensorsLayer *layer_tmp;
+    HASH_FIND_STR(h->layer_table, layer_name, layer_tmp);
+    if (layer_tmp == NULL)
     {
 
         printerr("Error: layer '%s' not found in header\n", layer_name);
         return ERROR;
     }
-    layer = (SafetensorsLayer *) node->value;
+    *layer = layer_tmp;
     return OK;
 }
 
 CallmStatusCode
 Safetensors_free(Safetensors *h)
 {
-    HashTable_free(h->layer_table);
+    if (h->layer_table != NULL)
+    {
+        HASH_CLEAR(hh, h->layer_table);
+    }
+
     free(h->raw_content);
     json_decref(h->json_root);
     if (munmap(h->map, h->map_size))

@@ -1,4 +1,4 @@
-#include ".../core/logging.h"
+#include "../core/logging.h"
 #include "../core/safetensors.h"
 #include "../tokenizer/tokenizer.h"
 #include <fcntl.h>

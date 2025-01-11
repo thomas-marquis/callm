@@ -1,14 +1,13 @@
-#include "./tokenizer.h"
-#include "../utils/errors.h"
-#include "../utils/json.h"
-#include "../utils/linked_list.h"
-#include "../utils/logging.h"
-#include "../utils/uthash.h"
+#include "tokenizer.h"
+#include "../core/base64.h"
+#include "../core/errors.h"
+#include "../core/json.h"
+#include "../core/linked_list.h"
+#include "../core/logging.h"
+#include "../core/uthash.h"
 #include <assert.h>
 #include <fcntl.h>
 #include <jansson.h>
-#include <openssl/bio.h>
-#include <openssl/evp.h>
 #include <pcre2.h>
 #include <regex.h>
 #include <stddef.h>
@@ -36,20 +35,6 @@ struct Tokenizer
     Token *decoder;  // id to token
     pcre2_code *ordinary_regex;
 };
-
-// Function to decode base64
-static unsigned char *
-base64_decode(const char *input, int length, int *out_len)
-{
-    BIO *b64, *bmem;
-    unsigned char *buffer = (unsigned char *) malloc(length);
-    b64 = BIO_new(BIO_f_base64());
-    bmem = BIO_new_mem_buf(input, length);
-    bmem = BIO_push(bmem, b64);
-    *out_len = BIO_read(bmem, buffer, length);
-    BIO_free_all(bmem);
-    return buffer;
-}
 
 static CallmStatusCode
 load_file_content(char *path, char **out_buffer)

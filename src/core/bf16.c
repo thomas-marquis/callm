@@ -1,4 +1,4 @@
-#include "./bf16.h"
+#include "bf16.h"
 #include <math.h>
 #include <stdint.h>
 #include <string.h>

@@ -1,8 +1,8 @@
-#include "./base64.h"
+#include "base64.h"
 #include <ctype.h>
 #include <string.h>
 
-#define PDDING_CHAR '='
+#define PADDING_CHAR '='
 #define B64_TABE_SIZE 64
 
 static const char b64_table[]

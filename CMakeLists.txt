@@ -18,8 +18,6 @@ include(AddGitSubmodule)
 include(Docs)
 include(CPM)
 
-# find_package(Python REQUIRED) find_package(OpenSSL REQUIRED)
-
 add_git_submodule(external/jansson)
 cpmaddpackage("gh:PCRE2Project/pcre2#pcre2-10.44")
 if(ENABLE_TESTING)
@@ -33,8 +31,3 @@ endif()
 include_directories(${JANSSON_INCLUDE_DIRS})
 
 add_subdirectory(src)
-
-# set(CMAKE_BUILD_TYPE Debug) target_compile_options(callm PRIVATE -g)
-if(ENABLE_TESTING)
-  target_compile_options(callm PRIVATE -g)
-endif()

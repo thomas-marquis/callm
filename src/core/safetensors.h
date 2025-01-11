@@ -1,9 +1,7 @@
 #ifndef SAFETENSORS_H
 #define SAFETENSORS_H
 
-#include "../utils/errors.h"
-#include "../utils/hash_table.h"
-#include "./bf16.h"
+#include "errors.h"
 #include "matrix.h"
 #include <jansson.h>
 
@@ -13,28 +11,14 @@ enum Dtype
     BF16 = 2,
 };
 
-typedef struct
-{
-    enum Dtype dtype;
-    int *shape;
-    int shape_size;
-    int *data_offset;
-} SafetensorsLayer;
+typedef struct SafetensorsLayer SafetensorsLayer;
 
-typedef struct
-{
-    char *raw_content;
-    HashTable *layer_table;
-    json_t *json_root;
-    void *map;
-    int map_size;
-    uint64_t header_size;
-} Safetensors;
+typedef struct Safetensors Safetensors;
 
 Matrix *Safetensors_load_matrix(const char *tensor_name, const Safetensors *header);
 
 CallmStatusCode Safetensors_get_layer_by_name(const Safetensors *header, const char *layer_name,
-                                              SafetensorsLayer *layer);
+                                              SafetensorsLayer **layer);
 
 static CallmStatusCode Safetensors_parse(Safetensors *h, const char *header_content);
 
