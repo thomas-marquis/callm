@@ -1,6 +1,5 @@
 PROGRAM = callm
 CC = gcc
-CMAKE_OPT= -DENABLE_TESTING=OFF
 
 all: run
 
@@ -28,18 +27,19 @@ docs:
 .PHONY: docs
 
 # Rebuild the project if necessary
-build: clear
-	@cmake -B ./build -S . $(CMAKE_OPT)
+build-dev: clear
+	@cmake -B ./build -S . -DTARGET_GROUP=dev
 	@cd build && make
+.PHONY: build-dev
 
 # run the project (needs to be built first)
 run:
+	@cd build && make
 	@./build/src/main/callm
 .PHONY: run
 
-# Run the tests
-test: build
-	@cmake -B ./build -S . -DENABLE_TESTING=ON
+# Run the tests (needs to be built as devfirst)
+test:
 	@cd build && make
-	@cd build/tests && make test
+	@cd build/tests && ctest --output-on-failure
 .PHONY: test

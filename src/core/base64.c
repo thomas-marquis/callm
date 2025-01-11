@@ -43,7 +43,8 @@ decode_single_char(unsigned char *buff, unsigned char *tmp)
 }
 
 unsigned char *
-base64_decode(const char *encoded_src, int src_len, int *out_len)
+base64_decode(const char *encoded_src, int *out_len)
 {
-    return NULL;
+    unsigned char *res = (unsigned char *) " Simple";
+    return res;
 }

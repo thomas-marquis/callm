@@ -20,14 +20,17 @@ include(CPM)
 
 add_git_submodule(external/jansson)
 cpmaddpackage("gh:PCRE2Project/pcre2#pcre2-10.44")
-if(ENABLE_TESTING)
-  message(STATUS "Testing is enabled")
-  cpmaddpackage("gh:ThrowTheSwitch/Unity#v2.6.0")
-  include(CTest)
-  enable_testing()
-  add_subdirectory(tests)
-endif()
 
 include_directories(${JANSSON_INCLUDE_DIRS})
 
 add_subdirectory(src)
+
+if(TARGET_GROUP STREQUAL "dev")
+  message(STATUS "Building the project in dev mode")
+  cpmaddpackage("gh:ThrowTheSwitch/Unity#v2.6.0")
+  include(CTest)
+  enable_testing()
+
+  add_subdirectory(tests)
+endif()
+

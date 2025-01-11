@@ -111,7 +111,7 @@ make_encoder_from_model_file(char *file_path, Token **encoder)
         {
             Token *t = (Token *) malloc(sizeof(Token));
             int out_len;
-            unsigned char *decoded_token = base64_decode(token, strlen(token), &out_len);
+            unsigned char *decoded_token = base64_decode(token, &out_len);
             int rank = atoi(rank_str);
             LOGF_DEBUG("Token: %s; Rank: %d", decoded_token, rank);
             exit(1);
