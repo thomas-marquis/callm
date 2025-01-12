@@ -101,31 +101,42 @@ make_encoder_from_model_file(char *file_path, Token **encoder)
         return ERROR;
     }
 
-    char *line = strtok(content, "\n");
-    while (line != NULL)
+    char *line = content;
+    char *next_line;
+
+    while (line && *line)
     {
+        next_line = strchr(line, '\n');
+        if (next_line)
+        {
+            *next_line = '\0';
+        }
+
+        LOG_DEBUG(line);
         char *token = strtok(line, " ");
         char *rank_str = strtok(NULL, " ");
-        LOG_DEBUG(line);
         if (token && rank_str)
         {
             Token *t = (Token *) malloc(sizeof(Token));
             int out_len;
             unsigned char *decoded_token = base64_decode(token, &out_len);
             int rank = atoi(rank_str);
-            LOGF_DEBUG("Token: %s; Rank: %d", decoded_token, rank);
-            exit(1);
             t->token = (char *) malloc(out_len + 1);
             strcpy(t->token, (char *) decoded_token);
             t->id = rank;
+            HASH_ADD_STR(*encoder, token, t);
 
             free(decoded_token);
         }
+
+        if (next_line)
+        {
+            line = next_line + 1;
+        }
         else
         {
-            LOGF_ERROR("Failed to parse line: '%s'", line);
+            break;
         }
-        line = strtok(NULL, "\n");
     }
 
     free(content);

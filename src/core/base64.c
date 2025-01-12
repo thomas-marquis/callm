@@ -68,7 +68,7 @@ unsigned char *
 b64_buffer_to_string(struct b64_buffer *b64_buff)
 {
     unsigned char *res = malloc(b64_buff->len + 1);
-    CHECK_MALLOC(res, "base64 buffer to string");
+    CHECK_MALLOC_RET_NULL(res, "base64 buffer to string");
     memcpy(res, b64_buff->buff, b64_buff->len);
     res[b64_buff->len] = '\0';
     return res;
