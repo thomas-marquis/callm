@@ -12,7 +12,7 @@ Matrix_new(int r, int c)
     Matrix *M = (Matrix *) malloc(sizeof(Matrix));
     M->r = r;
     M->c = c;
-    M->data = NULL;
+    M->data = (float *) malloc(r * c * sizeof(float));
     return M;
 }
 
@@ -102,15 +102,34 @@ void
 Matrix_print(const Matrix *M)
 {
     printf("M(%dx%d)=\n", M->r, M->c);
-    for (int i = 0; i < M->r; i++)
+    // for (int i = 0; i < M->r; i++)
+    // {
+    //     for (int j = 0; j < M->c; j++)
+    //     {
+    //         printf("%f ", M->data[i * M->c + j]);
+    //     }
+    //     printf("\n");
+    // }
+    // printf("\n");
+}
+
+int
+Matrix_equals(const Matrix *A, Matrix *B)
+{
+    if ((A->c != B->c) || (A->r != B->r))
     {
-        for (int j = 0; j < M->c; j++)
-        {
-            printf("%f ", M->data[i * M->c + j]);
-        }
-        printf("\n");
+        return 0;
     }
-    printf("\n");
+
+    for (int i = 0; i < A->r * A->c; i++)
+    {
+        if (A->data[i] != B->data[i])
+        {
+            return 0;
+        }
+    }
+
+    return 1;
 }
 
 // void multiply_matrices_blocked(int **A, int **B, int **C, int m, int n, int

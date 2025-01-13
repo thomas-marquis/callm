@@ -4,6 +4,7 @@ set(CALLM_CORE_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/errors.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/linked_list.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/matrix.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/matrix_view.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/safetensors.c")
 set(CALLM_CORE_HEADERS
     "${CMAKE_CURRENT_SOURCE_DIR}/base64.h"
@@ -13,6 +14,7 @@ set(CALLM_CORE_HEADERS
     "${CMAKE_CURRENT_SOURCE_DIR}/linked_list.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/logging.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/matrix.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/matrix_view.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/safetensors.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/uthash.h")
 

@@ -61,6 +61,8 @@ Matrix *Matrix_slice_line(const Matrix *M, int from, int nb);
 
 Matrix *Matrix_slice_column(const Matrix *M, int from, int nb);
 
+int Matrix_equals(const Matrix *A, Matrix *B);
+
 /*
  * Function: delete_matrix
  * --------------------

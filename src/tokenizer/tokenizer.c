@@ -112,7 +112,6 @@ make_encoder_from_model_file(char *file_path, Token **encoder)
             *next_line = '\0';
         }
 
-        LOG_DEBUG(line);
         char *token = strtok(line, " ");
         char *rank_str = strtok(NULL, " ");
         if (token && rank_str)
@@ -491,6 +490,15 @@ printCharInBinary(unsigned char c)
     {
         printf("%d", (c >> i) & 1);
     }
+}
+
+static inline void
+print_as_binary(char *str)
+{
+    while (*str != '\0')
+    {
+        printCharInBinary(*(str++));
+    }
     printf("\n");
 }
 
@@ -506,7 +514,7 @@ byte_pair_encode(Token *encoder, char *piece, LinkedList *out_token_ids)
         HASH_FIND_STR(encoder, piece, current_token);
         if (current_token != NULL)
         {
-            LOGF_INFO("Piece found: %s with id=%d", current_token->token, current_token->id);
+            LOGF_DEBUG("Piece found: %s with id=%d", current_token->token, current_token->id);
             LinkedList_add(out_token_ids, &current_token->id);
             return OK;
         }
@@ -537,13 +545,13 @@ byte_pair_encode(Token *encoder, char *piece, LinkedList *out_token_ids)
         HASH_FIND_STR(encoder, pair, tmp_tok);
         if (tmp_tok == NULL)
         {
-            LOGF_INFO("Pair: %s - Not found in encoder", pair);
+            LOGF_DEBUG("Pair: %s - Not found in encoder", pair);
             rank = RANK_MAX;
         }
         else
         {
             rank = tmp_tok->id;
-            LOGF_INFO("Pair: %s - Found in rank %d", pair, rank);
+            LOGF_DEBUG("Pair: %s - Found in rank %d", pair, rank);
         }
 
         if (rank < min_rank)
@@ -563,7 +571,7 @@ byte_pair_encode(Token *encoder, char *piece, LinkedList *out_token_ids)
     while (min_rank != RANK_MAX)
     {
         size_t i = min_size;
-        LOGF_INFO("Min rank: %d; Min size: %zu; Parts len: %zu", min_rank, min_size, parts_len);
+        LOGF_DEBUG("Min rank: %d; Min size: %zu; Parts len: %zu", min_rank, min_size, parts_len);
         if (i > 0)
         {
             parts_ranks[i - 1] = get_rank(&encoder, piece, parts_len, parts_ranks, parts_sizes, i - 1);
@@ -593,18 +601,18 @@ byte_pair_encode(Token *encoder, char *piece, LinkedList *out_token_ids)
         char *part = (char *) malloc(part_len + 1);
         strncpy(part, piece + part_start, part_len);
         part[part_len] = '\0';
-        LOGF_INFO("Part: %s", part);
+        LOGF_DEBUG("Part: %s", part);
+        print_as_binary(part);
 
         HASH_FIND_STR(encoder, part, current_token);
         if (current_token != NULL)
         {
-            LOGF_INFO("Part found: %s with id=%d", current_token->token, current_token->id);
+            LOGF_DEBUG("Part found: %s with id=%d", current_token->token, current_token->id);
             LinkedList_add(out_token_ids, &current_token->id);
         }
         else
         {
-            LOGF_INFO("Part not found in voc: %s", part);
-            // LOG_ERROR("Part not found");
+            LOGF_DEBUG("Part not found in voc: %s", part);
         }
     }
 
@@ -629,27 +637,27 @@ Tokenizer_encode(Tokenizer *tokenizer, const char *input_str, int **out_token_id
         return ERROR;
     }
 
-    LOG_INFO("Printing text parts");
-    LOGF_INFO("Size: %zu", LinkedList_size(pieces));
+    LOG_DEBUG("Printing text parts");
+    LOGF_DEBUG("Size: %zu", LinkedList_size(pieces));
 
     char *head_value = (char *) LinkedList_get_head_value(pieces);
-    LOGF_INFO("First part: %s", head_value);
+    LOGF_DEBUG("First part: %s", head_value);
 
     Token *current_token;
     char *piece;
     LINKED_LIST_ITER(pieces, item)
     {
         piece = LinkedList_get_head_value(item);
-        LOGF_INFO("========== '%s' ===========", piece);
+        LOGF_DEBUG("========== '%s' ===========", piece);
         HASH_FIND_STR(encoder, piece, current_token);
         if (current_token != NULL)
         {
-            LOGF_INFO("Token found: %s with id=%d", current_token->token, current_token->id);
+            LOGF_DEBUG("Token found: %s with id=%d", current_token->token, current_token->id);
             LinkedList_add(tokens_ids, &current_token->id);
         }
         else
         {
-            LOGF_INFO("Token not found: %s", (char *) LinkedList_get_head_value(item));
+            LOGF_DEBUG("Token not found: %s", (char *) LinkedList_get_head_value(item));
             char *piece = (char *) LinkedList_get_head_value(item);
             if (byte_pair_encode(encoder, piece, tokens_ids) != OK)
             {
@@ -680,34 +688,6 @@ Tokenizer_encode(Tokenizer *tokenizer, const char *input_str, int **out_token_id
     // appliquer la regexp et ittérer sur les find
     // récupérer l'id du token correspondant dans l'encoder s'il existe
     // Sinon,
-    Token *tmp;
-    char *expected = " vous";
-    while (*expected != '\0')
-    {
-        // printCharInBinary(*(expected++));
-        printf("%x ", *(expected++));
-    }
-    printf("\n");
-    int tmp_id = 9189;
-    HASH_FIND_INT(tokenizer->decoder, &tmp_id, tmp);
-    char *actual = (char *) malloc(strlen(tmp->token));
-    strcpy(actual, tmp->token);
-    while (*actual != '\0')
-    {
-        printf("%x ", *actual);
-        actual++;
-        // printCharInBinary(*(actual++));
-    }
-    printf("\n%s\n", tmp->token);
-    // HASH_FIND_STR(encoder, "Ġvous", tmp);
-    if (tmp != NULL)
-    {
-        LOGF_INFO("COUCOU Token found: %s with id=%d", tmp->token, tmp->id);
-    }
-    else
-    {
-        LOG_ERROR("COUCOU Token not found");
-    }
     return OK;
 }
 
