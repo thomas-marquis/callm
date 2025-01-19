@@ -248,7 +248,7 @@ Safetensors_load_matrix(const char *tensor_name, const Safetensors *header)
 
     if (layer->dtype == F32)
     {
-        LOG_INFO("Loading float32 matrix");
+        LOG_DEBUG("Loading float32 matrix");
 
         char *buff = (char *) malloc(nb_elements * sizeof(float));
         CHECK_MALLOC_PANIC(buff, "tmp matrix data buffer");
@@ -263,7 +263,7 @@ Safetensors_load_matrix(const char *tensor_name, const Safetensors *header)
     }
     else if (layer->dtype == BF16)
     {
-        LOG_INFO("Loading bf16 matrix");
+        LOG_DEBUG("Loading bf16 matrix");
 
         char *buff = (char *) malloc(nb_elements * sizeof(bf16_t));
         CHECK_MALLOC_PANIC(buff, "tmp matrix data buffer");

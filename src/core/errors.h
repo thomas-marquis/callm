@@ -1,6 +1,7 @@
 #ifndef LIB_ERRORS_H
 #define LIB_ERRORS_H
 
+#include "logging.h"
 #include <stdio.h>
 
 #define printerr(...) fprintf(stderr, __VA_ARGS__)
@@ -40,6 +41,16 @@
         printf(stderr, msg, __VA_ARGS__);                                                                              \
         exit(1);                                                                                                       \
     }
+
+#define RETURN_WHEN_NULL(ptr, msg)                                                                                     \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if ((ptr) == NULL)                                                                                             \
+        {                                                                                                              \
+            LOG_ERROR(msg);                                                                                            \
+            return NULL;                                                                                               \
+        }                                                                                                              \
+    } while (0)
 
 typedef enum
 {

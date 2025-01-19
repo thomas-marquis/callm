@@ -47,7 +47,11 @@ CallmStatusCode Matrix_fill(Matrix *M, float *data);
  *
  *  Multiplies two matrices A and B and returns the result matrix C
  */
-CallmStatusCode Matrix_dot(const Matrix *A, const Matrix *B, Matrix *C);
+Matrix *Matrix_dot(const Matrix *A, const Matrix *B);
+
+Matrix *Matrix_transpose(const Matrix *M);
+
+void Matrix_apply_softmax(Matrix *M);
 
 /*
  * Function: print_matrix
@@ -63,6 +67,7 @@ Matrix *Matrix_slice_column(const Matrix *M, int from, int nb);
 
 int Matrix_equals(const Matrix *A, Matrix *B);
 
+Matrix *Matrix_select_columns(const Matrix *M, int *idx, int nb);
 /*
  * Function: delete_matrix
  * --------------------

@@ -1,6 +1,7 @@
 #include "matrix.h"
 #include "logging.h"
 #include <immintrin.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -37,13 +38,14 @@ Matrix_fill(Matrix *M, float *data)
     return OK;
 }
 
-CallmStatusCode
-Matrix_dot(const Matrix *A, const Matrix *B, Matrix *C)
+Matrix *
+Matrix_dot(const Matrix *A, const Matrix *B)
 {
+    Matrix *C = Matrix_new(A->r, B->c);
     if (A->c != B->r)
     {
         LOG_ERROR("Matrix dimensions do not match");
-        return ERROR;
+        return NULL;
     }
 
     for (int a_row = 0; a_row < A->r; a_row++)
@@ -57,7 +59,49 @@ Matrix_dot(const Matrix *A, const Matrix *B, Matrix *C)
             }
         }
     }
-    return OK;
+    return C;
+}
+
+void
+Matrix_apply_softmax(Matrix *M)
+{
+    float max = 0;
+    for (int i = 0; i < M->r * M->c; i++)
+    {
+        if (M->data[i] > max)
+        {
+            max = M->data[i];
+        }
+    }
+    float sum = 0;
+    for (int i = 0; i < M->r * M->c; i++)
+    {
+        M->data[i] = exp(M->data[i] - max);
+        sum += M->data[i];
+    }
+    for (int i = 0; i < M->r * M->c; i++)
+    {
+        M->data[i] /= sum;
+    }
+}
+
+Matrix *
+Matrix_transpose(const Matrix *M)
+{
+    if (M == NULL || M->data == NULL)
+    {
+        return NULL;
+    }
+
+    Matrix *result = Matrix_new(M->c, M->r);
+    for (int i = 0; i < M->r; i++)
+    {
+        for (int j = 0; j < M->c; j++)
+        {
+            result->data[j * M->r + i] = M->data[i * M->c + j];
+        }
+    }
+    return result;
 }
 
 Matrix *
@@ -98,19 +142,36 @@ Matrix_slice_column(const Matrix *M, int from, int nb)
     return M_slice;
 }
 
+Matrix *
+Matrix_select_columns(const Matrix *M, int *idx, int nb)
+{
+    Matrix *M_slice = Matrix_new(M->r, nb);
+    int i;
+    int curr_idx;
+    for (i = 0; i < nb; i++)
+    {
+        curr_idx = idx[i];
+        for (int j = 0; j < M->r; j++)
+        {
+            M_slice->data[j * nb + i] = M->data[j * M->c + curr_idx];
+        }
+    }
+    return M_slice;
+}
+
 void
 Matrix_print(const Matrix *M)
 {
     printf("M(%dx%d)=\n", M->r, M->c);
-    // for (int i = 0; i < M->r; i++)
-    // {
-    //     for (int j = 0; j < M->c; j++)
-    //     {
-    //         printf("%f ", M->data[i * M->c + j]);
-    //     }
-    //     printf("\n");
-    // }
-    // printf("\n");
+    for (int i = 0; i < M->r; i++)
+    {
+        for (int j = 0; j < M->c; j++)
+        {
+            printf("%f ", M->data[i * M->c + j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
 }
 
 int

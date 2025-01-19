@@ -1,7 +1,9 @@
+#include "../core/config.h"
 #include "../core/logging.h"
 #include "../core/safetensors.h"
 #include "../tokenizer/tokenizer.h"
 #include "matrix.h"
+#include "model.h"
 #include <fcntl.h>
 #include <pcre.h>
 #include <stdint.h>
@@ -38,9 +40,15 @@ int
 main()
 {
     char *st_file_path = "model2.safetensors";
+    const char *config_file = "config.json";
 
     Safetensors *st = Safetensors_new(st_file_path);
     Safetensors_print(st);
+
+    Config *config = Config_new(config_file);
+    Model *model = Model_new(st, config);
+
+    return 0;
 
     SafetensorsLayer *emb_layer;
     Matrix *emb_mat = Safetensors_load_matrix(embeddings_layer_name, st);
@@ -90,6 +98,8 @@ main()
     Matrix *sub_mat = Matrix_slice_column(emb_mat, 0, 1);
     LOG_DEBUG("CUCOU");
     Matrix_print(sub_mat);
+
+    Config_free(config);
 
     return 0;
 }

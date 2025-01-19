@@ -6,6 +6,7 @@ target_link_libraries(
   callm
   PUBLIC callm_core
          callm_tokenizer
+         callm_llm
          jansson
          pcre2-8
          pcre2-16
