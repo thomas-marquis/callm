@@ -14,7 +14,7 @@ tearDown(void)
 }
 
 void
-test_should_decode_base64_encoded_string()
+test_should_encode_text_correctly()
 {
     TEST_ASSERT_EQUAL_STRING(" Simple", base64_decode("IFNpbXBsZQ==", NULL));
     TEST_ASSERT_EQUAL_STRING("Print", base64_decode("UHJpbnQ=", NULL));
@@ -48,7 +48,7 @@ int
 main(void)
 {
     UNITY_BEGIN();
-    RUN_TEST(test_should_decode_base64_encoded_string);
+    RUN_TEST(test_should_encode_text_correctly);
     RUN_TEST(test_should_decode_with_output_len);
     return UNITY_END();
 }

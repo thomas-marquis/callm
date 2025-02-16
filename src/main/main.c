@@ -35,19 +35,20 @@
 
 static char *monologue_otis = "aujourd’hui qui m’ont";
 static const char *st_file_path = "model2.safetensors";
-static const char *tok_file_path = "tokenizer.model";
+static const char *tok_file_path = "resources/tokenizer.model";
 static const char *config_file = "config.json";
 
 int
 main()
 {
+    Tokenizer *tokenizer = Tokenizer_new(tok_file_path);
+
+    return 0;
     Safetensors *st = Safetensors_new(st_file_path);
     Safetensors_print(st);
 
     Config *config = Config_new(config_file);
     Model *model = Model_new(st, config);
-
-    Tokenizer *tokenizer = Tokenizer_new(tok_file_path);
 
     LOG_INFO("Encoding Otis monologue...");
     int *token_ids;

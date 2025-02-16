@@ -266,6 +266,21 @@ Tokenizer_new(const char *file_path)
     // encoder avec les tokens spéciaux
     // trier le decoder des tokens normaux ??
 
+    // Token *test_tok;
+    // char *test_part = malloc(3 * sizeof(char));
+    // test_part[0] = 'b';
+    // test_part[1] = 'o';
+    // test_part[2] = '\0';
+    // HASH_FIND_STR(tokenizer->encoder, test_part, test_tok);
+    // if (test_tok != NULL)
+    // {
+    //     LOGF_DEBUG("TEST Token found: %s with id=%d", test_tok->token, test_tok->id);
+    // }
+    // else
+    // {
+    //     LOG_ERROR("TEST Token not found");
+    // }
+
     return tokenizer;
 }
 
@@ -436,6 +451,7 @@ split_text(char *input_str, pcre2_code *re, LinkedList *out)
 
 typedef unsigned int Rank;
 static Rank RANK_MAX = UINT_MAX;
+static unsigned int PART_SIZE_MAX = UINT_MAX;
 
 static inline Rank
 get_rank(Token **encoder, char *piece, size_t parts_len, Rank *parts_ranks, size_t *parts_sizes, size_t i)
@@ -530,15 +546,16 @@ byte_pair_encode(Token *encoder, char *piece, LinkedList *out_token_ids)
     Rank *parts_ranks = (Rank *) malloc(parts_len * sizeof(Rank));
 
     Rank min_rank = RANK_MAX;
-    size_t min_size = SIZE_MAX;
+    unsigned int min_size = PART_SIZE_MAX;
 
-    char pair[2];
+    char pair[3];
 
     // Initialisation loop
-    for (int i = 0; i < piece_len - 1; i++)
+    for (unsigned int i = 0; i < piece_len - 1; i++)
     {
         char *pair_start = piece + i;
         strncpy(pair, pair_start, 2);
+        pair[2] = '\0';
 
         Token *tmp_tok;
         Rank rank;
@@ -570,7 +587,7 @@ byte_pair_encode(Token *encoder, char *piece, LinkedList *out_token_ids)
     // Main loop
     while (min_rank != RANK_MAX)
     {
-        size_t i = min_size;
+        unsigned int i = min_size;
         LOGF_DEBUG("Min rank: %d; Min size: %zu; Parts len: %zu", min_rank, min_size, parts_len);
         if (i > 0)
         {
@@ -580,9 +597,9 @@ byte_pair_encode(Token *encoder, char *piece, LinkedList *out_token_ids)
         remove_part(parts_sizes, parts_ranks, &parts_len, i + 1);
 
         min_rank = RANK_MAX;
-        min_size = SIZE_MAX;
+        min_size = PART_SIZE_MAX;
 
-        for (int i = 0; i < parts_len - 1; i++)
+        for (unsigned int i = 0; i < parts_len - 1; i++)
         {
             if (parts_ranks[i] < min_rank)
             {
@@ -590,10 +607,11 @@ byte_pair_encode(Token *encoder, char *piece, LinkedList *out_token_ids)
                 min_size = i;
             }
         }
+        LOGF_DEBUG("END Min rank: %d; Min size: %zu; Parts len: %zu", min_rank, min_size, parts_len);
     }
 
     // Merge pairs
-    int part_start, part_len;
+    unsigned int part_start, part_len;
     for (int i = 0; i < parts_len - 1; i++)
     {
         part_start = parts_sizes[i];
@@ -601,8 +619,7 @@ byte_pair_encode(Token *encoder, char *piece, LinkedList *out_token_ids)
         char *part = (char *) malloc(part_len + 1);
         strncpy(part, piece + part_start, part_len);
         part[part_len] = '\0';
-        LOGF_DEBUG("Part: %s", part);
-        print_as_binary(part);
+        LOGF_DEBUG("Part : %s (len=%lu)", part, strlen(part));
 
         HASH_FIND_STR(encoder, part, current_token);
         if (current_token != NULL)
@@ -698,7 +715,7 @@ Tokenizer_decode_single(Tokenizer *tokenizer, int token_id)
     HASH_FIND_INT(tokenizer->decoder, &token_id, token);
     if (token == NULL)
     {
-        return "X";
+        return "Ce token n'existe pas";
     }
     return token->token;
 }
