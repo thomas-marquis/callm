@@ -8,20 +8,20 @@
 #define CHECK_MALLOC(ptr, msg)                                                                                         \
     if (ptr == NULL)                                                                                                   \
     {                                                                                                                  \
-        printerr("Error allocating memory for %s\n", msg);                                                             \
+        LOGF_ERROR("Error allocating memory for %s", msg);                                                             \
         return 1;                                                                                                      \
     }
 #define CHECK_MALLOC_RET_NULL(ptr, msg)                                                                                \
     if (ptr == NULL)                                                                                                   \
     {                                                                                                                  \
-        printerr("Error allocating memory for %s\n", msg);                                                             \
+        LOGF_ERROR("Error allocating memory for %s", msg);                                                             \
         return NULL;                                                                                                   \
     }
 #define CHECK_MALLOC_PANIC(ptr, msg)                                                                                   \
     if (ptr == NULL)                                                                                                   \
     {                                                                                                                  \
-        printerr("Error allocating memory for %s\n", msg);                                                             \
-        exit(1);                                                                                                       \
+        LOGF_ERROR("Error allocating memory for %s", msg);                                                             \
+        exit(EXIT_FAILURE);                                                                                            \
     }
 #define CHECK_STATUS(status, msg, ...)                                                                                 \
     if (status != OK)                                                                                                  \
@@ -39,7 +39,7 @@
     if (status != OK)                                                                                                  \
     {                                                                                                                  \
         printf(stderr, msg, __VA_ARGS__);                                                                              \
-        exit(1);                                                                                                       \
+        exit(EXIT_FAILURE);                                                                                            \
     }
 
 #define RETURN_WHEN_NULL(ptr, msg)                                                                                     \

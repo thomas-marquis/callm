@@ -228,7 +228,7 @@ get_regex()
 }
 
 Tokenizer *
-Tokenizer_new(char *file_path)
+Tokenizer_new(const char *file_path)
 {
     LOG_INFO("Creating encoder from file");
 

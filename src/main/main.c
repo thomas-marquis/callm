@@ -34,43 +34,20 @@
 //                               "communauté, à faire le don, le don de soi…";
 
 static char *monologue_otis = "aujourd’hui qui m’ont";
-static char *embeddings_layer_name = "model.embed_tokens.weight";
+static const char *st_file_path = "model2.safetensors";
+static const char *tok_file_path = "tokenizer.model";
+static const char *config_file = "config.json";
 
 int
 main()
 {
-    char *st_file_path = "model2.safetensors";
-    const char *config_file = "config.json";
-
     Safetensors *st = Safetensors_new(st_file_path);
     Safetensors_print(st);
 
     Config *config = Config_new(config_file);
     Model *model = Model_new(st, config);
 
-    return 0;
-
-    SafetensorsLayer *emb_layer;
-    Matrix *emb_mat = Safetensors_load_matrix(embeddings_layer_name, st);
-    if (emb_mat == NULL)
-    {
-        LOG_ERROR("Error loading embedding matrix");
-        return 1;
-    }
-
-    // matrix_t *M = Safetensors_load_matrix("my_tensor", h);
-    // Matrix_print(M);
-    // Matrix_free(M);
-    //
-    // matrix_t *N = Safetensors_load_matrix("my_tensor_float32", h);
-    // Matrix_print(N);
-    // Matrix_free(N);
-
-    // Safetensors_free(h);
-
-    char *tok_file_path = "tokenizer.model";
     Tokenizer *tokenizer = Tokenizer_new(tok_file_path);
-    Tokenizer_print(tokenizer);
 
     LOG_INFO("Encoding Otis monologue...");
     int *token_ids;
@@ -94,10 +71,9 @@ main()
     }
     printf("]\n");
 
-    Matrix_print(emb_mat);
-    Matrix *sub_mat = Matrix_slice_column(emb_mat, 0, 1);
-    LOG_DEBUG("CUCOU");
-    Matrix_print(sub_mat);
+    LOG_INFO("Forwarding model...");
+    Matrix *output = Model_forward(model, token_ids, token_count);
+    Matrix_print(output);
 
     Config_free(config);
 

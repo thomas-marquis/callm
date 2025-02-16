@@ -7,7 +7,7 @@
 
 typedef struct Tokenizer Tokenizer;
 
-Tokenizer *Tokenizer_new(char *filepath);
+Tokenizer *Tokenizer_new(const char *filepath);
 
 CallmStatusCode Tokenizer_encode(Tokenizer *tokenizer, const char *input_str, int **token_ids, int *token_count);
 

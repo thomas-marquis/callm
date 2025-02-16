@@ -28,9 +28,13 @@ docs:
 
 # Rebuild the project if necessary
 build-dev: clear
-	@cmake -B ./build -S . -DTARGET_GROUP=dev
+	@cmake -B ./build -S . -DRELEASE_TYPE=DEV -DLOG_LEVEL=DEBUG
 	@cd build && make
 .PHONY: build-dev
+
+build-python: clear
+	@cmake -B ./build -S . -DRELEASE_TYPE=PYTHON -DLOG_LEVEL=DEBUG
+	@cd build && make
 
 # run the project (needs to be built first)
 run:

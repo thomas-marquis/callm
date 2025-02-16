@@ -1,7 +1,6 @@
 #include "matrix.h"
 #include "logging.h"
 #include <immintrin.h>
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -13,6 +12,7 @@ Matrix_new(int r, int c)
     Matrix *M = (Matrix *) malloc(sizeof(Matrix));
     M->r = r;
     M->c = c;
+    M->size = r * c;
     M->data = (float *) malloc(r * c * sizeof(float));
     return M;
 }
@@ -20,9 +20,39 @@ Matrix_new(int r, int c)
 CallmStatusCode
 Matrix_free(Matrix *M)
 {
+    if (M == NULL)
+    {
+        return OK;
+    }
     free(M->data);
     free(M);
     return OK;
+}
+
+CallmStatusCode
+Matrix_set(Matrix *M, int row, int col, float value)
+{
+    if (row >= M->r || col >= M->c)
+    {
+        return ERROR;
+    }
+    M->data[row * M->c + col] = value;
+    return OK;
+}
+
+float
+Matrix_get(const Matrix *M, int row, int col, CallmStatusCode *status)
+{
+    if (row >= M->r || col >= M->c)
+    {
+        *status = ERROR;
+        return 0;
+    }
+    if (status != NULL)
+    {
+        *status = OK;
+    }
+    return M->data[row * M->c + col];
 }
 
 CallmStatusCode
@@ -36,6 +66,32 @@ Matrix_fill(Matrix *M, float *data)
         }
     }
     return OK;
+}
+
+Matrix *
+Matrix_arange(int start, int end, int step, int axis)
+{
+    int nb = (end - start) / step;
+    Matrix *M;
+    if (axis == MAT_APPLY_ROW)
+    {
+        M = Matrix_new(1, nb);
+    }
+    else if (axis == MAT_APPLY_COL)
+    {
+        M = Matrix_new(nb, 1);
+    }
+    else
+    {
+        LOG_ERROR("Invalid axis");
+        return NULL;
+    }
+
+    for (int i = 0; i < nb; i++)
+    {
+        M->data[i] = start + i * step;
+    }
+    return M;
 }
 
 Matrix *
@@ -62,27 +118,189 @@ Matrix_dot(const Matrix *A, const Matrix *B)
     return C;
 }
 
-void
-Matrix_apply_softmax(Matrix *M)
+Matrix *
+Matrix_multiply(const Matrix *A, const Matrix *B)
 {
-    float max = 0;
-    for (int i = 0; i < M->r * M->c; i++)
+    if ((A->r != B->r) || (A->c != B->c))
     {
-        if (M->data[i] > max)
+        LOG_ERROR("Matrix dimensions do not match");
+        return NULL;
+    }
+
+    Matrix *C = Matrix_new(A->r, A->c);
+    for (int i = 0; i < C->r; i++)
+    {
+        for (int j = 0; j < C->c; j++)
         {
-            max = M->data[i];
+            C->data[i * C->c + j] = A->data[i * A->c + j] * B->data[i * B->c + j];
         }
     }
-    float sum = 0;
-    for (int i = 0; i < M->r * M->c; i++)
+    return C;
+}
+
+Matrix *
+Matrix_multiply_broadcast(const Matrix *A_small, const Matrix *B_large, int broadcast_direction)
+{
+    if (broadcast_direction == MAT_APPLY_COL)
     {
-        M->data[i] = exp(M->data[i] - max);
-        sum += M->data[i];
+        if (A_small->c != B_large->c)
+        {
+            LOGF_ERROR("Large matrix nb of columns do not match: expected %d, got %d", A_small->c, B_large->c);
+            return NULL;
+        }
+        Matrix *C = Matrix_new(B_large->r, B_large->c);
+        for (int i = 0; i < C->c; i++)
+        {
+            for (int j = 0; j < C->r; j++)
+            {
+                C->data[j * C->c + i] = A_small->data[i] * B_large->data[j * B_large->c + i];
+            }
+        }
+        return C;
     }
-    for (int i = 0; i < M->r * M->c; i++)
+    else if (broadcast_direction == MAT_APPLY_ROW)
     {
-        M->data[i] /= sum;
+        if (A_small->r != B_large->r)
+        {
+            LOGF_ERROR("Large matrix nb of rows do not match: expected %d, got %d", A_small->r, B_large->r);
+            return NULL;
+        }
+        Matrix *C = Matrix_new(B_large->r, B_large->c);
+        for (int i = 0; i < C->r; i++)
+        {
+            for (int j = 0; j < C->c; j++)
+            {
+                C->data[i * C->c + j] = A_small->data[i] * B_large->data[i * B_large->c + j];
+            }
+        }
+        return C;
     }
+    else
+    {
+        LOG_ERROR("Invalid broadcast direction");
+        return NULL;
+    }
+}
+
+Matrix *
+Matrix_multiply_scalar(const Matrix *A, float scalar)
+{
+    Matrix *C = Matrix_new(A->r, A->c);
+    for (int i = 0; i < C->r; i++)
+    {
+        for (int j = 0; j < C->c; j++)
+        {
+            C->data[i * C->c + j] = A->data[i * A->c + j] * scalar;
+        }
+    }
+    return C;
+}
+
+Matrix *
+Matrix_add_scalar(const Matrix *A, float scalar)
+{
+    Matrix *C = Matrix_new(A->r, A->c);
+    for (int i = 0; i < C->r; i++)
+    {
+        for (int j = 0; j < C->c; j++)
+        {
+            C->data[i * C->c + j] = A->data[i * A->c + j] + scalar;
+        }
+    }
+    return C;
+}
+
+void
+Matrix_apply_each(Matrix *M, mat_apply_t f)
+{
+    for (int i = 0; i < M->r; i++)
+    {
+        for (int j = 0; j < M->c; j++)
+        {
+            M->data[i * M->c + j] = f(M->data[i * M->c + j]);
+        }
+    }
+}
+
+void
+Matrix_apply_each_arg(Matrix *M, mat_apply_arg_t f, void *arg)
+{
+    for (int i = 0; i < M->r; i++)
+    {
+        for (int j = 0; j < M->c; j++)
+        {
+            M->data[i * M->c + j] = f(M->data[i * M->c + j], arg);
+        }
+    }
+}
+
+void
+Matrix_apply_along(Matrix *M, int axis, mat_apply_along_t f)
+{
+    if (axis == MAT_APPLY_COL)
+    {
+        for (int j = 0; j < M->c; j++)
+        {
+            float col[M->r];
+            for (int i = 0; i < M->r; i++)
+            {
+                col[i] = M->data[i * M->c + j];
+            }
+            f(col, M->r);
+            for (int i = 0; i < M->r; i++)
+            {
+                M->data[i * M->c + j] = col[i];
+            }
+        }
+    }
+    else if (axis == MAT_APPLY_ROW)
+    {
+
+        for (int i = 0; i < M->r; i++)
+        {
+            f(&M->data[i * M->c], M->c);
+        }
+    }
+    else
+    {
+        LOG_ERROR("Invalid axis");
+    }
+}
+
+Matrix *
+Matrix_reduce_along(const Matrix *M, int axis, mat_reduce_along_t f)
+{
+    Matrix *result;
+    if (axis == MAT_APPLY_COL)
+    {
+        result = Matrix_new(1, M->c);
+        for (int j = 0; j < M->c; j++)
+        {
+            float col[M->r];
+            for (int i = 0; i < M->r; i++)
+            {
+                col[i] = M->data[i * M->c + j];
+            }
+            result->data[j] = f(col, M->r);
+        }
+        ENSURE_SHAPE(result, 1, M->c);
+    }
+    else if (axis == MAT_APPLY_ROW)
+    {
+        result = Matrix_new(M->r, 1);
+        for (int i = 0; i < M->r; i++)
+        {
+            result->data[i] = f(&M->data[i * M->c], M->c);
+        }
+
+        ENSURE_SHAPE(result, M->r, 1);
+    }
+    else
+    {
+        LOG_ERROR("Invalid axis");
+        return NULL;
+    }
+    return result;
 }
 
 Matrix *
@@ -191,6 +409,61 @@ Matrix_equals(const Matrix *A, Matrix *B)
     }
 
     return 1;
+}
+
+Matrix *
+Matrix_concat(const Matrix *A, const Matrix *B, int axis)
+{
+    Matrix *C;
+    if (axis == MAT_APPLY_COL)
+    {
+        if (A->r != B->r)
+        {
+            LOG_ERROR("Matrix_concat: matrices dimensions do not match for axis col");
+            return NULL;
+        }
+        C = Matrix_new(A->r, A->c + B->c);
+        for (int i = 0; i < C->r; i++)
+        {
+            for (int j = 0; j < A->c; j++)
+            {
+                C->data[i * C->c + j] = A->data[i * A->c + j];
+            }
+            for (int j = 0; j < B->c; j++)
+            {
+                C->data[i * C->c + A->c + j] = B->data[i * B->c + j];
+            }
+        }
+    }
+    else if (axis == MAT_APPLY_ROW)
+    {
+        if (A->c != B->c)
+        {
+            LOG_ERROR("Matrix_concat: matrices dimensions do not match for axis row");
+            return NULL;
+        }
+        C = Matrix_new(A->r + B->r, A->c);
+        for (int i = 0; i < A->r; i++)
+        {
+            for (int j = 0; j < C->c; j++)
+            {
+                C->data[i * C->c + j] = A->data[i * A->c + j];
+            }
+        }
+        for (int i = 0; i < B->r; i++)
+        {
+            for (int j = 0; j < C->c; j++)
+            {
+                C->data[(A->r + i) * C->c + j] = B->data[i * B->c + j];
+            }
+        }
+    }
+    else
+    {
+        LOG_ERROR("Matrix_concat : invalid axis");
+        return NULL;
+    }
+    return C;
 }
 
 // void multiply_matrices_blocked(int **A, int **B, int **C, int m, int n, int

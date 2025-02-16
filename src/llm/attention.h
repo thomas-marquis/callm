@@ -7,7 +7,7 @@
 
 typedef struct attention Attention;
 
-Attention *Attention_new(Safetensors *st, int layer, const Config *config);
+Attention *Attention_new(Safetensors *st, const Config *config, unsigned int layer_idx);
 
 void Attention_free(Attention *at);
 

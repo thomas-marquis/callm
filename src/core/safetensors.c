@@ -20,7 +20,7 @@ struct SafetensorsLayer
     enum Dtype dtype;
     int *shape;
     int shape_size;
-    int *data_offset;
+    long *data_offset;
     UT_hash_handle hh;
 };
 
@@ -91,14 +91,14 @@ SafetensorsLayer_parse(json_t *layer, SafetensorsLayer *h)
         }
     }
 
-    h->data_offset = (int *) malloc(2 * sizeof(int));
+    h->data_offset = (int *) malloc(2 * sizeof(long));
     CHECK_MALLOC(h->data_offset, "data_offset");
-    if (json_unpack(json_array_get(data_offset, 0), "i", &h->data_offset[0]))
+    if (json_unpack(json_array_get(data_offset, 0), "F", &h->data_offset[0]))
     {
         printerr("error: invalid JSON data for data_offsets at index 0\n");
         return ERROR;
     }
-    if (json_unpack(json_array_get(data_offset, 1), "i", &h->data_offset[1]))
+    if (json_unpack(json_array_get(data_offset, 1), "F", &h->data_offset[1]))
     {
         printerr("error: invalid JSON data for data_offsets at index 1\n");
         return ERROR;
@@ -201,6 +201,8 @@ Safetensors_print(Safetensors *h)
             }
         }
         printf("]");
+
+        printf("\t\tdata_offset: [%lu, %lu]\n", layer->data_offset[0], layer->data_offset[1]);
         printf("\n");
         SafetensorsLayer_free(layer);
     }
@@ -234,17 +236,32 @@ Safetensors_load_matrix(const char *tensor_name, const Safetensors *header)
     CHECK_STATUS_PANIC(SafetensorsLayer_parse(json_layer, layer), "Error parsing tensor header %s\n", tensor_name)
 
     // Check is a matrix
-    if (layer->shape_size != 2)
+    if (layer->shape_size > 2 || layer->shape_size < 1)
     {
-        LOGF_ERROR("tensor %s is not a matrix", tensor_name);
+        LOGF_ERROR("tensor %s (dim=%d) is not a matrix", tensor_name, layer->shape_size);
         exit(1);
     }
 
-    // Get data from map
-    Matrix *m = Matrix_new(layer->shape[0], layer->shape[1]);
+    size_t dim1 = layer->shape[0];
+    size_t dim2;
 
-    int nb_elements = layer->shape[0] * layer->shape[1];
+    if (layer->shape_size == 1)
+    {
+        dim2 = 1;
+    }
+    else
+    {
+        dim2 = layer->shape[1];
+    }
+
+    // Get data from map
+    Matrix *m = Matrix_new(dim1, dim2);
+
+    int nb_elements = dim1 * dim2;
     int start_index = HEADER_SIZE_PART_SIZE + header->header_size + layer->data_offset[0];
+
+    LOGF_DEBUG("Loading matrix %s (%zux%zu) with %d elements at start index %d (=%lu+%lu+%lu)", tensor_name, dim1, dim2,
+               nb_elements, start_index, HEADER_SIZE_PART_SIZE, header->header_size, layer->data_offset[0]);
 
     if (layer->dtype == F32)
     {

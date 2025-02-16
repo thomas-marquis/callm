@@ -5,6 +5,7 @@ set(CALLM_CORE_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/linked_list.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/config.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/matrix.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/maths.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/matrix_view.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/safetensors.c")
 set(CALLM_CORE_HEADERS
@@ -15,6 +16,7 @@ set(CALLM_CORE_HEADERS
     "${CMAKE_CURRENT_SOURCE_DIR}/linked_list.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/logging.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/matrix.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/maths.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/matrix_view.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/safetensors.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/config.h"

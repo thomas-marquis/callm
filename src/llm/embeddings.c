@@ -1,6 +1,7 @@
 #include "embeddings.h"
+#include "matrix.h"
 
-#define embeddings_layer_name "model.embed_tokens.weight"
+#define EMBEDDINGS_LAYER_NAME "model.embed_tokens.weight"
 
 struct embeddings_lookup
 {
@@ -15,7 +16,9 @@ EmbeddingsLookup_new(Safetensors *st)
 {
     LOG_DEBUG("Loading embeddings lookup table...");
     EmbeddingsLookup *el = (EmbeddingsLookup *) malloc(sizeof(EmbeddingsLookup));
-    Matrix *emb_mat = Safetensors_load_matrix(embeddings_layer_name, st);
+    Matrix *emb_mat = Safetensors_load_matrix(EMBEDDINGS_LAYER_NAME, st);
+    ENSURE_SHAPE(emb_mat, 128256, 2048);
+
     el->embeddings = emb_mat;
     return el;
     LOG_DEBUG("Embeddings lookup table loaded");
@@ -38,11 +41,8 @@ EmbeddingsLookup_free(EmbeddingsLookup *el)
 Matrix *
 EmbeddingsLookup_forward(EmbeddingsLookup *el, int *token_ids, int token_count)
 {
-    Matrix *embeddings = Matrix_select_columns(el->embeddings, token_ids, token_count);
-    if (embeddings == NULL)
-    {
-        return NULL;
-    }
+    Matrix *embeddings = Matrix_select_columns(Matrix_transpose(el->embeddings), token_ids, token_count);
+    ENSURE_SHAPE(embeddings, 2048, token_count);
 
     return embeddings;
 }

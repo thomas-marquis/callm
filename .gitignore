@@ -18,3 +18,7 @@ docs
 /tokenizer.model
 .ipynb_checkpoints
 hf-cache
+*.egg-info
+/_skbuild
+/tests.ipynb
+/toto.py

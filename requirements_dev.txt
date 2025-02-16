@@ -1,0 +1,7 @@
+scikit-build==0.18.1
+jupyter==1.1.1
+jupyterlab==4.3.4
+cmake==3.28.0
+black
+flake8
+isort
