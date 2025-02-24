@@ -76,6 +76,7 @@ Decoder_forward(Decoder *decoder, Matrix *hidden_state)
 {
     Matrix *normed_hidden_state = RMSNorm_forward(decoder->input_layernorm, hidden_state);
     ENSURE_SHAPE(normed_hidden_state, hidden_state->r, 2048);
+    Matrix_print(normed_hidden_state, 10);
 
     Matrix *attn_out = Attention_forward(decoder->attn, normed_hidden_state);
     RETURN_WHEN_NULL(attn_out, "Error when running attention");

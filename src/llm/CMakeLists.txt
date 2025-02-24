@@ -16,6 +16,6 @@ set(CALLM_LLM_HEADERS
     "${CMAKE_CURRENT_SOURCE_DIR}/mlp.h")
 
 add_library(callm_llm STATIC ${CALLM_LLM_SOURCES} ${CALLM_LLM_HEADERS})
-target_link_libraries(callm_llm PUBLIC callm_core)
+target_link_libraries(callm_llm PUBLIC callm_core callm_monitor)
 
 target_include_directories(callm_llm PUBLIC "./")

@@ -1,6 +1,7 @@
 #include "matrix.h"
 #include "logging.h"
 #include <immintrin.h>
+#include <jansson.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -377,19 +378,107 @@ Matrix_select_columns(const Matrix *M, int *idx, int nb)
     return M_slice;
 }
 
-void
-Matrix_print(const Matrix *M)
+Matrix *
+Matrix_select_rows(const Matrix *M, int *idx, int nb)
 {
-    printf("M(%dx%d)=\n", M->r, M->c);
-    for (int i = 0; i < M->r; i++)
+    Matrix *M_slice = Matrix_new(nb, M->c);
+    int i;
+    int curr_idx;
+    for (i = 0; i < nb; i++)
     {
+        curr_idx = idx[i];
         for (int j = 0; j < M->c; j++)
+        {
+            M_slice->data[i * M->c + j] = M->data[curr_idx * M->c + j];
+        }
+    }
+    return M_slice;
+}
+
+void
+Matrix_print(const Matrix *M, int display_len)
+{
+    int nb_lines;
+    if (display_len == -1 || display_len > M->r)
+    {
+        nb_lines = M->r;
+    }
+    else
+    {
+        nb_lines = display_len;
+    }
+    int nb_cols;
+    if (display_len == -1 || display_len > M->c)
+    {
+        nb_cols = M->c;
+    }
+    else
+    {
+        nb_cols = display_len;
+    }
+
+    printf("M(%dx%d)=\n", M->r, M->c);
+    for (int i = 0; i < nb_lines; i++)
+    {
+        for (int j = 0; j < nb_cols; j++)
         {
             printf("%f ", M->data[i * M->c + j]);
         }
+        if (nb_cols < M->c)
+        {
+            printf("...");
+        }
         printf("\n");
     }
+    if (nb_lines < M->r)
+    {
+        printf("...\n");
+    }
     printf("\n");
+}
+
+char *
+Matrix_to_json(const Matrix *M)
+{
+    if (M == NULL)
+    {
+        return NULL;
+    }
+
+    json_t *json_matrix = json_array();
+    if (!json_matrix)
+    {
+        return NULL;
+    }
+
+    for (int i = 0; i < M->r; i++)
+    {
+        json_t *json_row = json_array();
+        if (!json_row)
+        {
+            json_decref(json_matrix);
+            return NULL;
+        }
+
+        for (int j = 0; j < M->c; j++)
+        {
+            json_t *json_value = json_real(M->data[i * M->c + j]);
+            if (!json_value)
+            {
+                json_decref(json_row);
+                json_decref(json_matrix);
+                return NULL;
+            }
+            json_array_append_new(json_row, json_value);
+        }
+
+        json_array_append_new(json_matrix, json_row);
+    }
+
+    char *json_str = json_dumps(json_matrix, JSON_ENCODE_ANY);
+    json_decref(json_matrix);
+
+    return json_str;
 }
 
 int

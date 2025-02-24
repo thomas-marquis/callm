@@ -156,8 +156,15 @@ Matrix *Matrix_reduce_along(const Matrix *M, int axis, mat_reduce_along_t f);
 
 /*
  * Simply prints the matrix shape and first elements to the console
+ * Specify how many elements to display with display_len argument
+ * Display all elements if display_len is -1
  */
-void Matrix_print(const Matrix *M);
+void Matrix_print(const Matrix *M, int display_len);
+
+/*
+ * Return the json representation of the matrix (array of arrays)
+ */
+char *Matrix_to_json(const Matrix *M);
 
 /*
  * Given an input N x M matrix, returns a slice of the matrix from the given index to the given number of lines.
@@ -202,6 +209,20 @@ int Matrix_equals(const Matrix *A, Matrix *B);
  *  Output shape is N x nb
  */
 Matrix *Matrix_select_columns(const Matrix *M, int *idx, int nb);
+
+/*
+ * Given an input N x M matrix, returns a slice of the matrix with the rows specified by their index.
+ * Example:
+ * M=[[1,  2,  3 ],
+ *    [4,  5,  6 ],
+ *    [7,  8,  9 ],
+ *    [10, 11, 12]]
+ *   => Matrix_select_rows(M, (int[]){0, 2}, 2)
+ *   => [[1, 2, 3],
+ *       [7, 8, 9]]
+ *    Output shape is nb x M
+ */
+Matrix *Matrix_select_rows(const Matrix *M, int *idx, int nb);
 
 /*
  * Concatenate two matrices along a given axis.

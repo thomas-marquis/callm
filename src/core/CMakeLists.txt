@@ -23,5 +23,5 @@ set(CALLM_CORE_HEADERS
     "${CMAKE_CURRENT_SOURCE_DIR}/uthash.h")
 
 add_library(callm_core STATIC ${CALLM_CORE_SOURCES} ${CALLM_CORE_HEADERS})
-target_link_libraries(callm_core PUBLIC m)
+target_link_libraries(callm_core PUBLIC m jansson)
 target_include_directories(callm_core PUBLIC "./")

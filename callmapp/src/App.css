@@ -1,0 +1,15 @@
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+.matrix-list {
+  width: 200px;
+  border-right: 1px solid #ccc;
+  padding: 20px;
+}
+
+.matrix-visualization {
+  flex-grow: 1;
+  padding: 20px;
+}

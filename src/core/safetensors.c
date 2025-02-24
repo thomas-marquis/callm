@@ -337,11 +337,7 @@ Safetensors_free(Safetensors *h)
 
     free(h->raw_content);
     json_decref(h->json_root);
-    if (munmap(h->map, h->map_size))
-    {
-        printerr("Error unmapping safetensors file\n");
-        return ERROR;
-    }
+    munmap(h->map, h->map_size);  // TODO: check the return value (causes an error with python extension)
     free(h);
     return OK;
 }

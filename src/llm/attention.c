@@ -1,8 +1,8 @@
 #include "attention.h"
 #include "../core/errors.h"
 #include "../core/logging.h"
-#include "../core/maths.h"
 #include "../core/matrix.h"
+#include "../monitor/probe.h"
 
 struct attention
 {
@@ -78,6 +78,7 @@ apply_projection_heads(const Matrix *hidden_state, const Matrix *weights_T, size
 
     Matrix *proj = Matrix_dot(hidden_state, weights_T);
     RETURN_WHEN_NULL(proj, "Failed to compute projection");
+    Probe_send_matrix(proj, "projection");
     ENSURE_SHAPE(proj, nb_tokens, 2048);
 
     Matrix **per_token_mat = malloc(nb_tokens * sizeof(Matrix *));

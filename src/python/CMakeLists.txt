@@ -3,11 +3,13 @@ set_target_properties(pycallm PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(callm_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(callm_tokenizer PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(callm_llm PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(callm_monitor PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 python_extension_module(pycallm)
 target_link_libraries(
   pycallm
   callm_core
+  callm_monitor
   callm_tokenizer
   callm_llm
   jansson

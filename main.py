@@ -1,3 +1,41 @@
+import json
+from time import perf_counter
+
+import torch
+from pycallm.lib import pycallm
+from transformers import AutoTokenizer
+
+from llama_python.configuration import LlamaConfig
+from llama_python.model import LlamaForCausalLM, LlamaModel
+from llama_python.tokenizer import PreTrainedTokenizerFast
+
+tokenizer_config: dict = json.load(open("resources/original_llama/tokenizer_config.json", "r"))
+model_config: dict = json.load(open("resources/original_llama/config.json", "r"))
+
+encoder_file = "resources/tokenizer.model"
+cache_dir = "hf-cache"
+model_config_path = "config.json"
+model_weights_path = "model2.safetensors"
+
+secrets = json.load(open("secrets.json", "r"))
+hf_token = secrets["hf"]["token"]
+
+print("Create Tokenizer")
+tokenizer = pycallm.Tokenizer(encoder_file)
+
+print("Crealte LLM")
+llm = pycallm.LLamaModel(model_weights_path, model_config_path)
+
+token_ids = tokenizer.tokenize("Hello, my name is")
+
+res = llm.generate(token_ids)
+print(res)
+
+print("DONE MAN")
+
+
+exit(0)
+
 # from tests.integration.load_safetensors import should_load_bf16_st_correctly
 # from tools.safetensors import parse_and_display_header
 from pathlib import Path

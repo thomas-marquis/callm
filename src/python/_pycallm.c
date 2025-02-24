@@ -4,8 +4,43 @@
 #include "../core/errors.h"
 #include "../core/safetensors.h"
 #include "../llm/model.h"
+#include "../monitor/probe.h"
 #include "../tokenizer/tokenizer.h"
 #include <Python.h>
+
+#define MODULE_NAME "pycallm"
+
+#define CALLM_EXC_NAME "CallmError"
+#define CALLM_EXC_FULL_NAME "pycallm.CallmError"
+
+#define TOKENIZER_CLS_NAME "Tokenizer"
+#define TOKENIZER_CLS_FULL_NAME "pycallm.Tokenizer"
+
+#define MODEL_CLS_NAME "LLamaModel"
+#define MODEL_CLS_FULL_NAME "pycallm.LLamaModel"
+
+#define HANDLE_MEMORY_ERR(ptr, msg, goto_label)                                                                        \
+    if (ptr == NULL)                                                                                                   \
+    {                                                                                                                  \
+        PyErr_SetString(PyExc_MemoryError, msg);                                                                       \
+        goto goto_label;                                                                                               \
+    }
+
+#define HANDLE_RUNTIME_ERR(ptr, msg, goto_label)                                                                       \
+    if (ptr == NULL)                                                                                                   \
+    {                                                                                                                  \
+        PyErr_SetString(PyExc_RuntimeError, msg);                                                                      \
+        goto goto_label;                                                                                               \
+    }
+
+#define HANDLE_INTERNAL_ERR(ptr, msg, goto_label)                                                                      \
+    if (ptr == NULL)                                                                                                   \
+    {                                                                                                                  \
+        PyErr_SetString(CallmError, msg);                                                                              \
+        goto goto_label;                                                                                               \
+    }
+
+static PyObject *CallmError;
 
 typedef struct
 {
@@ -35,14 +70,14 @@ TokenizerObject_init(TokenizerObject *self, PyObject *args, PyObject *kwds)
     }
 
     Tokenizer *tokenizer = Tokenizer_new(filepath);
+    HANDLE_INTERNAL_ERR(tokenizer, "Failed to create Tokenizer object", error);
+    Tokenizer_print(tokenizer);
 
     self->tokenizer = tokenizer;
-    if (!self->tokenizer)
-    {
-        PyErr_SetString(PyExc_MemoryError, "Failed to create Tokenizer object");
-        return -1;
-    }
+
     return 0;
+error:
+    return -1;
 }
 
 static void
@@ -66,18 +101,15 @@ TokenizerObject_tokenize(TokenizerObject *self, PyObject *args)
     }
 
     Tokenizer *tokenizer = self->tokenizer;
-    if (tokenizer == NULL)
-    {
-        PyErr_SetString(PyExc_MemoryError, "Null pointer exception: no reference to Tokenizer object found");
-        return NULL;
-    }
+    HANDLE_MEMORY_ERR(tokenizer, "Null pointer exception: no reference to Tokenizer object found", error);
 
     int *token_ids;
     int token_count;
     CallmStatusCode status = Tokenizer_encode(tokenizer, input_str, &token_ids, &token_count);
     if (status != OK)
     {
-        return NULL;
+        PyErr_SetString(CallmError, "Failed to tokenize input string");
+        goto error;
     }
 
     PyObject *py_list = PyList_New(token_count);
@@ -86,7 +118,12 @@ TokenizerObject_tokenize(TokenizerObject *self, PyObject *args)
         PyObject *py_token = Py_BuildValue("i", token_ids[i]);
         PyList_SetItem(py_list, i, py_token);
     }
+
+    free(token_ids);
     return py_list;
+
+error:
+    return NULL;
 }
 
 static PyObject *
@@ -100,11 +137,7 @@ TokenizerObject_get_token_by_id(TokenizerObject *self, PyObject *args)
     }
 
     Tokenizer *tokenizer = self->tokenizer;
-    if (tokenizer == NULL)
-    {
-        PyErr_SetString(PyExc_MemoryError, "Null pointer exception: no reference to Tokenizer object found");
-        return NULL;
-    }
+    HANDLE_INTERNAL_ERR(tokenizer, "Null pointer exception: no reference to Tokenizer object found", error);
 
     char *token = Tokenizer_decode_single(tokenizer, token_id);
     if (token == NULL)
@@ -113,7 +146,12 @@ TokenizerObject_get_token_by_id(TokenizerObject *self, PyObject *args)
     }
 
     PyObject *py_token = Py_BuildValue("s", token);
+
+    free(token);
     return py_token;
+
+error:
+    return NULL;
 }
 
 static PyMethodDef TokenizerObject_methods[] = {
@@ -127,7 +165,7 @@ static PyMethodDef TokenizerObject_methods[] = {
 static PyTypeObject Tokenizer_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)  // init
         .tp_name
-    = "pycallm.Tokenizer",
+    = TOKENIZER_CLS_FULL_NAME,
     .tp_basicsize = sizeof(TokenizerObject),
     .tp_itemsize = 0,
     .tp_dealloc = (destructor) TokenizerObject_free,
@@ -168,19 +206,32 @@ LLamaModelObject_init(LLamaModelObject *self, PyObject *args, PyObject *kwds)
         return -1;
     }
 
-    Safetensors *st = Safetensors_new(safetensors_path);
-    Config *config = Config_new(config_path);
-    Model *model = Model_new(st, config);
-
-    self->model = model;
-    if (!self->model)
+    if (Probe_init("127.0.0.1", 8080) != OK)
     {
-        PyErr_SetString(PyExc_MemoryError, "Failed to create Model object");
+        PyErr_SetString(CallmError, "Failed to initialize probe client");
         return -1;
     }
+
+    Safetensors *st = Safetensors_new(safetensors_path);
+    HANDLE_INTERNAL_ERR(st, "Failed to create Safetensors object", finally1);
+
+    Config *config = Config_new(config_path);
+    HANDLE_INTERNAL_ERR(config, "Failed to create Config object", finally2);
+
+    Model *model = Model_new(st, config);
+    HANDLE_INTERNAL_ERR(model, "Failed to create Model object", finally3);
+
+    self->model = model;
     self->safetensors = st;
     self->config = config;
+
     return 0;
+finally3:
+    Config_free(config);
+finally2:
+    Safetensors_free(st);
+finally1:
+    return -1;
 }
 
 static void
@@ -204,6 +255,8 @@ LLamaModelObject_free(LLamaModelObject *self)
 static PyObject *
 LLamaModelObject_generate(LLamaModelObject *self, PyObject *args)
 {
+    PyObject *result = NULL;
+
     PyObject *input_list;
     if (!PyArg_ParseTuple(args, "O!", &PyList_Type, &input_list))
     {
@@ -212,55 +265,115 @@ LLamaModelObject_generate(LLamaModelObject *self, PyObject *args)
     }
 
     Model *model = self->model;
-    if (model == NULL)
-    {
-        PyErr_SetString(PyExc_MemoryError, "Null pointer exception: no reference to model object found");
-        return NULL;
-    }
+    HANDLE_MEMORY_ERR(model, "Null pointer exception: no reference to model object found", finally);
 
     Py_ssize_t list_size = PyList_Size(input_list);
     int *token_ids = (int *) malloc(list_size * sizeof(int));
-    if (token_ids == NULL)
-    {
-        PyErr_SetString(PyExc_MemoryError, "Memory allocation failed for input token ids");
-        return NULL;
-    }
+    HANDLE_MEMORY_ERR(token_ids, "Memory allocation failed for input token ids", finally);
 
     for (Py_ssize_t i = 0; i < list_size; i++)
     {
         PyObject *item = PyList_GetItem(input_list, i);
         if (!PyLong_Check(item))
         {
-            free(token_ids);
             PyErr_SetString(PyExc_TypeError, "List items must be integers");
-            return NULL;
+            goto finally2;
         }
         token_ids[i] = (int) PyLong_AsLong(item);
     }
 
-    char output_str[] = "Ceci est un test";
-    // CallmStatusCode status = Model_forward(model, token_ids, list_size, &output_str);
-    // free(token_ids);
-    // if (status != OK)
-    // {
-    //     PyErr_SetString(PyExc_RuntimeError, "Model generation failed");
-    //     return NULL;
-    // }
+    Matrix *out = Model_forward(model, token_ids, list_size);
+    HANDLE_INTERNAL_ERR(out, "Failed to generate text", finally2);
+    Matrix_print(out, 10);
 
-    PyObject *result = Py_BuildValue("s", output_str);
+    char output_str[] = "Ceci est un test";
+    result = Py_BuildValue("s", output_str);
+
+    Matrix_free(out);
+
+finally2:
+    free(token_ids);
     // free(output_str);
+finally:
     return result;
+}
+
+static PyObject *
+LLamaModelObject_embed(LLamaModelObject *self, PyObject *args)
+{
+    PyObject *result_list = NULL;
+    Matrix *cos = NULL;
+    Matrix *sin = NULL;
+
+    PyObject *input_list;
+    if (!PyArg_ParseTuple(args, "O!", &PyList_Type, &input_list))
+    {
+        PyErr_SetString(PyExc_TypeError, "Invalid input: expected a list of integers");
+        return NULL;
+    }
+
+    Model *model = self->model;
+    HANDLE_MEMORY_ERR(model, "Null pointer exception: no reference to model object found", finally);
+
+    Py_ssize_t list_size = PyList_Size(input_list);
+    int *token_ids = (int *) malloc(list_size * sizeof(int));
+    HANDLE_MEMORY_ERR(token_ids, "Memory allocation failed for input token ids", finally);
+
+    for (Py_ssize_t i = 0; i < list_size; i++)
+    {
+        PyObject *item = PyList_GetItem(input_list, i);
+        if (!PyLong_Check(item))
+        {
+            PyErr_SetString(PyExc_TypeError, "List items must be integers");
+            goto finally2;
+        }
+        token_ids[i] = (int) PyLong_AsLong(item);
+    }
+
+    Matrix *embeds_in = Model_embed_inputs(model, token_ids, list_size, &cos, &sin);
+    HANDLE_INTERNAL_ERR(embeds_in, "Failed to embed input tokens", finally2);
+
+    result_list = PyList_New(list_size);
+    HANDLE_MEMORY_ERR(result_list, "Memory allocation failed for embedding list", finally3);
+
+    int vector_size = embeds_in->c;
+    for (Py_ssize_t i = 0; i < embeds_in->r; i++)
+    {
+        PyObject *vector = PyList_New(vector_size);
+        HANDLE_MEMORY_ERR(vector, "Memory allocation failed for embedding vector", finally3);
+
+        for (int j = 0; j < vector_size; j++)
+        {
+            PyObject *value = PyLong_FromLong(embeds_in->data[i * vector_size + j]);
+            HANDLE_RUNTIME_ERR(value, "Failed to convert embedding value to Python integer", finally3);
+            PyList_SetItem(vector, j, value);
+        }
+
+        PyList_SetItem(result_list, i, vector);
+    }
+
+finally3:
+    Matrix_free(embeds_in);
+finally2:
+    free(token_ids);
+finally:
+    Matrix_free(cos);
+    Matrix_free(sin);
+
+    return result_list;
 }
 
 static PyMethodDef LLamaModelObject_methods[] = {
     { "generate", (PyCFunction) LLamaModelObject_generate, METH_VARARGS, "Generate text with LLM" },
+    { "embed", (PyCFunction) LLamaModelObject_embed, METH_VARARGS,
+      "Get embedding vectors for a given set of token ids. Returs list[list[int]]" },
     { NULL }  // Sentinel
 };
 
 static PyTypeObject LLamaModel_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)  // init
         .tp_name
-    = "pycallm.LLamaModel",
+    = MODEL_CLS_FULL_NAME,
     .tp_basicsize = sizeof(LLamaModelObject),
     .tp_itemsize = 0,
     .tp_dealloc = (destructor) LLamaModelObject_free,
@@ -275,7 +388,7 @@ static PyMethodDef CaLLMModule_methods[] = {
     { NULL }  // Sentinel
 };
 
-static struct PyModuleDef callm_module_def = { PyModuleDef_HEAD_INIT, "pycallm", NULL, -1, CaLLMModule_methods };
+static struct PyModuleDef callm_module_def = { PyModuleDef_HEAD_INIT, MODULE_NAME, NULL, -1, CaLLMModule_methods };
 
 PyMODINIT_FUNC
 PyInit_pycallm(void)
@@ -288,9 +401,16 @@ PyInit_pycallm(void)
     if (m == NULL)
         return NULL;
 
+    CallmError = PyErr_NewException(CALLM_EXC_FULL_NAME, NULL, NULL);
+    if (CallmError == NULL)
+        return NULL;
+
+    Py_INCREF(CallmError);
     Py_INCREF(&Tokenizer_Type);
     Py_INCREF(&LLamaModel_Type);
-    PyModule_AddObject(m, "Tokenizer", (PyObject *) &Tokenizer_Type);
-    PyModule_AddObject(m, "LLamaModel", (PyObject *) &LLamaModel_Type);
+    PyModule_AddObject(m, TOKENIZER_CLS_NAME, (PyObject *) &Tokenizer_Type);
+    PyModule_AddObject(m, MODEL_CLS_NAME, (PyObject *) &LLamaModel_Type);
+    PyModule_AddObject(m, CALLM_EXC_NAME, CallmError);
+
     return m;
 }

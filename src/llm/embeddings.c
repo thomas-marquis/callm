@@ -41,8 +41,8 @@ EmbeddingsLookup_free(EmbeddingsLookup *el)
 Matrix *
 EmbeddingsLookup_forward(EmbeddingsLookup *el, int *token_ids, int token_count)
 {
-    Matrix *embeddings = Matrix_select_columns(Matrix_transpose(el->embeddings), token_ids, token_count);
-    ENSURE_SHAPE(embeddings, 2048, token_count);
+    Matrix *embeddings = Matrix_select_rows(el->embeddings, token_ids, token_count);
+    ENSURE_SHAPE(embeddings, token_count, 2048);
 
     return embeddings;
 }

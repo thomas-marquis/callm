@@ -411,6 +411,24 @@ test_matrix_multiply_broadcast_col()
     Matrix_free(expected);
 }
 
+void
+test_matrix_to_json(void)
+{
+    // Given
+    Matrix *M = Matrix_new(2, 3);
+    float data[] = { 1, 2, 3,  //
+                     4, 5, 6 };
+    Matrix_fill(M, data);
+
+    const char *expected = "[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]";
+
+    // When
+    const char *json_str = Matrix_to_json(M);
+
+    // Then
+    TEST_ASSERT_EQUAL_STRING(expected, json_str);
+}
+
 int
 main()
 {
@@ -429,5 +447,6 @@ main()
     RUN_TEST(test_matrix_add_scalar);
     RUN_TEST(test_matrix_multiply_broadcast_row);
     RUN_TEST(test_matrix_multiply_broadcast_col);
+    RUN_TEST(test_matrix_to_json);
     return UNITY_END();
 }

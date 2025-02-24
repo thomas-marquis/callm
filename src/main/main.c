@@ -74,7 +74,7 @@ main()
 
     LOG_INFO("Forwarding model...");
     Matrix *output = Model_forward(model, token_ids, token_count);
-    Matrix_print(output);
+    Matrix_print(output, 10);
 
     Config_free(config);
 

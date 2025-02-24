@@ -14,4 +14,6 @@ CallmStatusCode Model_free(Model *model);
 
 Matrix *Model_forward(Model *model, int *token_ids, int token_count);
 
+Matrix *Model_embed_inputs(Model *model, int *token_ids, int token_count, Matrix **cos, Matrix **sin);
+
 #endif  // !#ifndef MODEL_H
