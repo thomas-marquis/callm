@@ -103,14 +103,25 @@ Probe_send_matrix(Matrix *M, const char *msg)
         return ERROR;
     }
 
+    char *body = (char *) malloc(strlen(json_matrix) + strlen(msg) + strlen("{\"message\": \"\", \"matrix\": }") + 1);
+    if (body == NULL)
+    {
+        LOG_ERROR("Memory allocation failed for body");
+        free(request);
+        free(json_matrix);
+        pthread_mutex_unlock(&client_instance->lock);
+        return ERROR;
+    }
+    sprintf(body, "{\"message\": \"%s\", \"matrix\": %s}", msg, json_matrix);
+
     snprintf(request, request_size,
              "POST /data HTTP/1.1\r\n"
              "Host: %s\r\n"
              "Content-Type: application/json\r\n"
-             "Content-Length: %zu\r\n\r\n"
-             "{\"message\": \"%s\", \"matrix\": %s}",
-             inet_ntoa(client_instance->server_addr.sin_addr), strlen(msg) + strlen(json_matrix) + 20, msg,
-             json_matrix);
+             "Content-Length: %zu\r\n"
+             "\r\n"
+             "%s",
+             inet_ntoa(client_instance->server_addr.sin_addr), strlen(body), body);
 
     ssize_t bytes_sent = send(client_instance->sockfd, request, strlen(request), 0);
     if (bytes_sent == -1)
