@@ -2,9 +2,9 @@
 #define MODEL_H
 
 #include "../core/config.h"
-#include "../core/errors.h"
 #include "../core/matrix.h"
 #include "../core/safetensors.h"
+#include "../shared/errors.h"
 
 typedef struct model_t Model;
 

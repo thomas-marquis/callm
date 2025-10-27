@@ -1,6 +1,6 @@
 #include "base64.h"
-#include "errors.h"
-#include "logging.h"
+#include "../shared/errors.h"
+#include "../shared/logging.h"
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>

@@ -3,6 +3,7 @@ import * as d3 from 'd3';
 import Paper from '@mui/material/Paper';
 
 interface MatrixVisualizationProps {
+    label: string;
     matrix: number[][];
 }
 
@@ -105,22 +106,24 @@ const Matrix: React.FC<MatrixVisualizationProps> = ({ matrix }) => {
     }, [matrix]);
 
     return (
-        <Paper
-            elevation={3}
-            style={{
-                position: 'absolute',
-                top: '64px',
-                left: 0,
-                right: 0,
-                bottom: 0,
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                overflow: 'auto',
-            }}
-        >
-            <svg ref={ref} style={{ width: '100%', height: '100%' }}></svg>
-        </Paper>
+        <>
+            <Paper
+                elevation={3}
+                style={{
+                    position: 'absolute',
+                    top: '64px',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    overflow: 'auto',
+                }}
+            >
+                <svg ref={ref} style={{ width: '100%', height: '100%' }}></svg>
+            </Paper>
+        </>
     );
 };
 

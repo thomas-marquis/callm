@@ -1,7 +1,7 @@
 #include "safetensors.h"
+#include "../shared/logging.h"
 #include "bf16.h"
 #include "json.h"
-#include "logging.h"
 #include "safetensors.h"
 #include "uthash.h"
 #include <fcntl.h>

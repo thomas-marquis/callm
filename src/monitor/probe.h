@@ -1,8 +1,8 @@
 #ifndef PROBE_H
 #define PROBE_H
 
-#include "../core/errors.h"
 #include "../core/matrix.h"
+#include "../shared/errors.h"
 
 CallmStatusCode Probe_init(const char *host, int server_port);
 

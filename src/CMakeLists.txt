@@ -3,6 +3,7 @@ add_subdirectory(tokenizer)
 add_subdirectory(llm)
 add_subdirectory(main)
 add_subdirectory(monitor)
+add_subdirectory(shared)
 
 if(RELEASE_TYPE STREQUAL "PYTHON")
     add_subdirectory(python)

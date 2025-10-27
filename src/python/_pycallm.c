@@ -1,10 +1,10 @@
 #include "pytypedefs.h"
 #define PY_SSIZE_T_CLEAN
 
-#include "../core/errors.h"
 #include "../core/safetensors.h"
 #include "../llm/model.h"
 #include "../monitor/probe.h"
+#include "../shared/errors.h"
 #include "../tokenizer/tokenizer.h"
 #include <Python.h>
 

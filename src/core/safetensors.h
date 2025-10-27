@@ -1,7 +1,7 @@
 #ifndef SAFETENSORS_H
 #define SAFETENSORS_H
 
-#include "errors.h"
+#include "../shared/errors.h"
 #include "matrix.h"
 #include <jansson.h>
 

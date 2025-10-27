@@ -1,7 +1,7 @@
 #ifndef MATRIX_VIEW_H
 #define MATRIX_VIEW_H
 
-#include "errors.h"
+#include "../shared/errors.h"
 #include "matrix.h"
 
 typedef struct matrix_view MatrixView;

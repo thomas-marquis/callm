@@ -1,4 +1,5 @@
-set(CALLM_ROOT_EXE "${CMAKE_CURRENT_SOURCE_DIR}/main.c")
+set(CALLM_ROOT_EXE "${CMAKE_CURRENT_SOURCE_DIR}/main.c"
+        ../core/memory/block.h)
 
 add_executable(callm ${CALLM_ROOT_EXE})
 
@@ -7,6 +8,7 @@ target_link_libraries(
   PUBLIC callm_core
          callm_tokenizer
          callm_llm
+         callm_shared
          jansson
          pcre2-8
          pcre2-16

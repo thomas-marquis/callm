@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 4.1)
 
 project(
   CaLLM
@@ -44,4 +44,3 @@ if(RELEASE_TYPE STREQUAL "DEV")
 
   add_subdirectory(tests)
 endif()
-

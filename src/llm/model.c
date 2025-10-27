@@ -1,6 +1,6 @@
 #include "model.h"
-#include "../core/errors.h"
-#include "../core/logging.h"
+#include "../shared/errors.h"
+#include "../shared/logging.h"
 #include "decoder.h"
 #include "embeddings.h"
 #include "rms_norm.h"

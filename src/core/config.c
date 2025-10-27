@@ -1,6 +1,6 @@
 #include "config.h"
-#include "errors.h"
-#include "logging.h"
+#include "../shared/errors.h"
+#include "../shared/logging.h"
 #include <jansson.h>
 #include <stdlib.h>
 #include <string.h>

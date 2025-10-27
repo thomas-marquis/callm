@@ -291,6 +291,8 @@ class LlamaAttention(nn.Module):
         print("cos", cos.shape)
         print("sin", sin.shape)
         query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
+        print("query_states after rope", query_states.shape)
+        print("key_states after rope", key_states.shape)
 
         if past_key_value is not None:
             # sin and cos are specific to RoPE models; cache_position needed for the static cache
@@ -307,6 +309,8 @@ class LlamaAttention(nn.Module):
             else:
                 attention_interface = ALL_ATTENTION_FUNCTIONS[self.config._attn_implementation]
 
+        print("attention mask", attention_mask)
+        print("attention kwargs", kwargs)
         attn_output, attn_weights = attention_interface(
             self,
             query_states,

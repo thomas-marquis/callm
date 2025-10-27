@@ -2,8 +2,8 @@
 #define ROTARY_EMBEDDING_H
 
 #include "../core/config.h"
-#include "../core/errors.h"
 #include "../core/matrix.h"
+#include "../shared/errors.h"
 
 typedef struct rotary_embedding_t RotaryEmbedding;
 

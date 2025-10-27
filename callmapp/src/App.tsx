@@ -15,6 +15,14 @@ const fakeLitleMessage: ProbeMessage = {
     ],
 };
 
+const fakeLitleMessage2: ProbeMessage = {
+    label: 'fake little 1',
+    matrix: [
+        [100, 2],
+        [3, 4],
+    ],
+};
+
 
 const bigMat: number[][] = [];
 for (let i = 0; i < 100; i++) {
@@ -31,8 +39,8 @@ const fakeBigMessage: ProbeMessage = {
 
 
 const App: React.FC = () => {
-    // const messages = useSSE('/api/events');
-    const messages = [fakeLitleMessage, fakeBigMessage];
+    const messages = useSSE('/api/events');
+    // const messages = [fakeLitleMessage, fakeLitleMessage2, fakeBigMessage];
     const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
     const [drawerOpen, setDrawerOpen] = useState(true);
 
@@ -50,7 +58,7 @@ const App: React.FC = () => {
                         <MenuIcon />
                     </IconButton>
                     <Typography variant="h6">
-                        Matrix Visualization
+                        Probe Viewer
                     </Typography>
                 </Toolbar>
             </AppBar>
@@ -61,7 +69,7 @@ const App: React.FC = () => {
                 <MatrixList messages={messages} onSelect={setSelectedLabel} style={{ marginTop: '100px' }} />
             </Drawer>
             <div className="matrix-visualization" style={{ marginLeft: drawerOpen ? 240 : 0, transition: 'margin 0.3s' }}>
-                {selectedLabel && <Matrix matrix={selectedMatrix} />}
+                {selectedLabel && <Matrix matrix={selectedMatrix} label={selectedLabel} />}
             </div>
         </div>
     );

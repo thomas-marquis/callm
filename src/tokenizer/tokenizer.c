@@ -1,10 +1,10 @@
 #include "tokenizer.h"
 #include "../core/base64.h"
-#include "../core/errors.h"
 #include "../core/json.h"
 #include "../core/linked_list.h"
-#include "../core/logging.h"
 #include "../core/uthash.h"
+#include "../shared/errors.h"
+#include "../shared/logging.h"
 #include <assert.h>
 #include <fcntl.h>
 #include <jansson.h>

@@ -1,7 +1,7 @@
 #ifndef LINKED_LIST_H
 #define LINKED_LIST_H
 
-#include "errors.h"
+#include "../shared/errors.h"
 #include <stddef.h>
 
 #define LINKED_LIST_ITER(list, item) for (LinkedList *item = list; item != NULL; item = LinkedList_get_next(item))

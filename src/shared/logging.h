@@ -17,13 +17,13 @@
         }                                                                                                              \
         fprintf(stdout, "[DEBUG] %s:%d in %s(): %s\n", __FILE__, __LINE__, __func__, formatted_msg);                   \
         free(formatted_msg);                                                                                           \
-    } while (0)
+    } while (0);
 
 #define LOG_DEBUG(msg)                                                                                                 \
     do                                                                                                                 \
     {                                                                                                                  \
         fprintf(stdout, "[DEBUG] %s:%d in %s(): %s\n", __FILE__, __LINE__, __func__, msg);                             \
-    } while (0)
+    } while (0);
 #else
 #define LOG_DEBUG(msg)
 #define LOGF_DEBUG(msg, ...)
@@ -42,13 +42,13 @@
         }                                                                                                              \
         fprintf(stdout, "[INFO] %s:%d in %s(): %s\n", __FILE__, __LINE__, __func__, formatted_msg);                    \
         free(formatted_msg);                                                                                           \
-    } while (0)
+    } while (0);
 
 #define LOG_INFO(msg)                                                                                                  \
     do                                                                                                                 \
     {                                                                                                                  \
         fprintf(stdout, "[INFO] %s:%d in %s(): %s\n", __FILE__, __LINE__, __func__, msg);                              \
-    } while (0)
+    } while (0);
 
 #define LOGF_ERROR(msg, ...)                                                                                           \
     do                                                                                                                 \
@@ -63,12 +63,12 @@
         }                                                                                                              \
         fprintf(stderr, "[error] %s:%d in %s(): %s\n", __FILE__, __LINE__, __func__, formatted_msg);                   \
         free(formatted_msg);                                                                                           \
-    } while (0)
+    } while (0);
 
 #define LOG_ERROR(msg)                                                                                                 \
     do                                                                                                                 \
     {                                                                                                                  \
         fprintf(stderr, "[error] %s:%d in %s(): %s\n", __FILE__, __LINE__, __func__, msg);                             \
-    } while (0)
+    } while (0);
 
 #endif  // !#ifndef LIB_LOGGING_H

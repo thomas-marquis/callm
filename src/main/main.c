@@ -1,6 +1,6 @@
 #include "../core/config.h"
-#include "../core/logging.h"
 #include "../core/safetensors.h"
+#include "../shared/logging.h"
 #include "../tokenizer/tokenizer.h"
 #include "matrix.h"
 #include "model.h"
@@ -43,9 +43,8 @@ main()
 {
     Tokenizer *tokenizer = Tokenizer_new(tok_file_path);
 
-    return 0;
     Safetensors *st = Safetensors_new(st_file_path);
-    Safetensors_print(st);
+    // Safetensors_print(st);
 
     Config *config = Config_new(config_file);
     Model *model = Model_new(st, config);

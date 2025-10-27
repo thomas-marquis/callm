@@ -1,9 +1,9 @@
 #ifndef RMS_NORM_H
 #define RMS_NORM_H
 
-#include "../core/errors.h"
 #include "../core/matrix.h"
 #include "../core/safetensors.h"
+#include "../shared/errors.h"
 
 typedef struct rms_norm_t RMSNorm;
 

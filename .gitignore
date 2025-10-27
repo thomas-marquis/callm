@@ -23,3 +23,5 @@ hf-cache
 /tests.ipynb
 /toto.py
 /secrets.json
+.idea
+/demo.ipynb

@@ -12,6 +12,7 @@ target_link_libraries(
   callm_monitor
   callm_tokenizer
   callm_llm
+  callm_shared
   jansson
   pcre2-8
   pcre2-16

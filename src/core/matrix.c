@@ -1,5 +1,5 @@
 #include "matrix.h"
-#include "logging.h"
+#include "../shared/logging.h"
 #include <immintrin.h>
 #include <jansson.h>
 #include <stdio.h>
@@ -10,7 +10,7 @@
 Matrix *
 Matrix_new(int r, int c)
 {
-    Matrix *M = (Matrix *) malloc(sizeof(Matrix));
+    Matrix *M = malloc(sizeof(Matrix));
     M->r = r;
     M->c = c;
     M->size = r * c;
