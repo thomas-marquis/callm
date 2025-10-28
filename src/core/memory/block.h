@@ -17,6 +17,39 @@
             varname[j] = tmp[j]; \
     } while (0);
 
+typedef struct memblock_iterator MemBlockIterator;
+
+/**
+ *
+ * @param i
+ * @return -1 when iteration ends, or 0 else.
+ */
+int
+MemBlockIterator_next(MemBlockIterator *i);
+
+/**
+ * Set or update a value at a given memory block location.
+ *
+ * @param i
+ * @param val value to set
+ * @param coords array of coordinates (must exist)
+ * @param err
+ */
+void
+MemBlockIterator_set_val(MemBlockIterator *i, float val, size_t* coords, Error **err);
+
+/**
+ * Get the value corresponding to the specified memory location.
+ *
+ * @param i
+ * @param coords array of coordinates (must exist)
+ * @param err
+ * @return
+ */
+float
+MemBlockIterator_get_val(MemBlockIterator *i, size_t* coords, Error **err);
+
+
 typedef struct memblock MemBlock;
 
 /**
@@ -68,5 +101,20 @@ MemBlock_set_val(MemBlock *b, float val, size_t* coords, Error **err);
  */
 float
 MemBlock_get_val(MemBlock *b, size_t* coords, Error **err);
+
+/**
+ * Create an iterator.
+ *
+ * @param b
+ * @param shape_mask array of 0 or 1. Iterations will only be performed to dimensions marked as 1.
+ * @param err
+ * @return
+ */
+MemBlockIterator *
+MemBlock_iterate(MemBlock *b, size_t *shape_mask, Error **err);
+
+void
+MemBlock_iterator_free(MemBlock *b, MemBlockIterator *i);
+
 
 #endif  // CALLM_BLOCK_H

@@ -78,17 +78,17 @@ Tensor_ndim(Tensor *t)
     return t->ndim;
 }
 
-// TODO: move this in an iterator in the memory block module
-static void
-infer_coords(size_t index, size_t ndim, size_t *shape, size_t *coords)
-{
-    for (size_t dim = 0; dim < ndim; dim++)
-    {
-        size_t dim_size = shape[dim];
-        coords[dim] = index % dim_size;
-        index /= dim_size;
-    }
-}
+//// TODO: move this in an iterator in the memory block module
+//static void
+//infer_coords(size_t index, size_t ndim, size_t *shape, size_t *coords)
+//{
+//    for (size_t dim = 0; dim < ndim; dim++)
+//    {
+//        size_t dim_size = shape[dim];
+//        coords[dim] = index % dim_size;
+//        index /= dim_size;
+//    }
+//}
 
 Tensor *
 Tensor_dot(Tensor *t, Tensor *other)
@@ -188,8 +188,8 @@ Tensor_dot(Tensor *t, Tensor *other)
     free(c_shape);
 
     float acc;
-    size_t *t_coords = (size_t *) malloc(ndim - 1 * sizeof(size_t));
-    size_t *other_coords = (size_t *) malloc(ndim - 1 * sizeof(size_t));
+    size_t *t_coords = malloc(ndim - 1 * sizeof(size_t));
+    size_t *other_coords = malloc(ndim - 1 * sizeof(size_t));
 
     for (size_t i = 0; i < t->shape[ndim - 2]; i++)
     {
