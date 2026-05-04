@@ -305,7 +305,7 @@ Safetensors_load_matrix(const char *tensor_name, const Safetensors *header)
     }
     else
     {
-        LOGF_ERROR("unsupported dtype %zu", layer->dtype);
+        LOGF_ERROR("unsupported dtype %d", layer->dtype);
         exit(1);
     }
 

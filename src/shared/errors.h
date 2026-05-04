@@ -1,5 +1,6 @@
 #ifndef LIB_ERRORS_H
 #define LIB_ERRORS_H
+#define _GNU_SOURCE
 
 #include "logging.h"
 #include <stdio.h>
@@ -66,22 +67,17 @@ typedef struct
     char *message;
 } Error;
 
-Error**
-Error_new_empty_ref();
+Error **Error_new_empty_ref();
 
-void
-Error_free(Error *err);
+void Error_free(Error *err);
 
-void
-Error_with_message(Error **err, const char *message);
+void Error_with_message(Error **err, const char *message);
 
-#define CHECK_ERROR(err_ref, on_err) \
-    do \
-    { \
-        if (*err_ref != NULL) \
-        on_err \
-        Error_free(*err_ref);\
-    } while(0); \
-
+#define CHECK_ERROR(err_ref, on_err)                                                                                   \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if (*err_ref != NULL)                                                                                          \
+            on_err Error_free(*err_ref);                                                                               \
+    } while (0);
 
 #endif  // !#ifndef LIB_ERRORS_H
