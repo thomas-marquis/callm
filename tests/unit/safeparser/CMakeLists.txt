@@ -1,0 +1,11 @@
+add_executable(callm_test_safeparser_query_options "${CMAKE_CURRENT_SOURCE_DIR}/test_query_options.c")
+target_link_libraries(callm_test_safeparser_query_options PRIVATE callm_safeparser unity)
+add_test(NAME test_safeparser_query_options COMMAND callm_test_safeparser_query_options)
+
+add_executable(callm_test_safeparser_filtering "${CMAKE_CURRENT_SOURCE_DIR}/test_filtering.c")
+target_link_libraries(callm_test_safeparser_filtering PRIVATE callm_safeparser unity)
+add_test(NAME test_safeparser_filtering COMMAND callm_test_safeparser_filtering)
+
+add_executable(callm_test_safeparser_sorting "${CMAKE_CURRENT_SOURCE_DIR}/test_sorting.c")
+target_link_libraries(callm_test_safeparser_sorting PRIVATE callm_safeparser unity)
+add_test(NAME test_safeparser_sorting COMMAND callm_test_safeparser_sorting)

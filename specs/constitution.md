@@ -31,6 +31,8 @@ the feature number.
 **!Important!**: Don't edit the content located between `<!-- HUMAN-START -->` and `<!-- HUMAN-END -->` (case
 unsensitive).
 
+**!Important!**: only focus on the specified feature and don't touch anything else.
+
 Each feature directory MUST be structured this way:
 
 - `specs.md`: the global specification, no technical details. Expected information:
@@ -91,15 +93,52 @@ What you need to do:
 
 - Implement the listed tasks one by one
 - Once a task is finished, mark it as done with `- [x] ` in the file `tasks.md`, then, switch to the next one
-- Don't take any initiative, just follow the plan and the task list. If you come accoss an unplaned issue, just stop and
+- Don't take any initiative, just follow the plan and the task list. If you come across an unplaned issue, just stop and
   ask me first
 - When possible, run the tests
 - When possible, run the code itself
 
-## Technical stack
+## Technical principles
+
+### Stack
 
 - Main language: C
 - Build system: CMake
+
+### Coding conventions and patterns
+
+**Object-like approach**
+
+A struct can be used to represent a class.
+Example:
+
+```c
+typedef struct Point Point;
+
+Point *
+Point_new(int x, int y);
+
+void
+Pont_free(Point *p);
+
+int
+Point_distance(Point *p1, Point *p2);
+```
+
+**Method name must start with the struct type name**
+
+**Constructor and destructor**
+
+Both methods `X_new` and `X_free` are required.
+
+**Documentation**
+
+Write each function and struct documentation in the header file.
+
+**Private members**
+
+The header file should not contain any private members.
+In most of the cases, the header file only declares the type of the struct and the c file implements it.
 
 ## Main parts
 

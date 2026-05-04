@@ -8,6 +8,7 @@
 #include <jansson.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -33,6 +34,37 @@ struct Safetensors
     int map_size;
     uint64_t header_size;
 };
+
+static int
+Safetensors_is_tensor_json_entry(json_t *entry)
+{
+    if (!json_is_object(entry))
+    {
+        return 0;
+    }
+
+    json_t *dtype = json_object_get(entry, "dtype");
+    json_t *shape = json_object_get(entry, "shape");
+    json_t *data_offsets = json_object_get(entry, "data_offsets");
+
+    return json_is_string(dtype) && json_is_array(shape) && json_is_array(data_offsets);
+}
+
+const char *
+Safetensors_dtype_to_string(enum Dtype dtype)
+{
+    if (dtype == F32)
+    {
+        return "F32";
+    }
+
+    if (dtype == BF16)
+    {
+        return "BF16";
+    }
+
+    return "UNKNOWN";
+}
 
 static CallmStatusCode
 SafetensorsLayer_parse(json_t *layer, SafetensorsLayer *h)
@@ -91,7 +123,7 @@ SafetensorsLayer_parse(json_t *layer, SafetensorsLayer *h)
         }
     }
 
-    h->data_offset = (int *) malloc(2 * sizeof(long));
+    h->data_offset = (long *) malloc(2 * sizeof(long));
     CHECK_MALLOC(h->data_offset, "data_offset");
     if (json_unpack(json_array_get(data_offset, 0), "F", &h->data_offset[0]))
     {
@@ -138,7 +170,6 @@ Safetensors_new(const char *file_path)
 
     uint64_t header_size;
     memcpy(&header_size, map, HEADER_SIZE_PART_SIZE);
-    printf("Header size: %lu\n", header_size);
     if (HEADER_SIZE_PART_SIZE + header_size > filesize)
     {
         fprintf(stderr, "Error: header size is larger than file size\n");
@@ -324,6 +355,61 @@ Safetensors_get_layer_by_name(const Safetensors *h, const char *layer_name, Safe
         return ERROR;
     }
     *layer = layer_tmp;
+    return OK;
+}
+
+CallmStatusCode
+Safetensors_iterate_tensor_metadata(const Safetensors *h, SafetensorsTensorMetadataVisitor visitor, void *context)
+{
+    if (h == NULL || visitor == NULL)
+    {
+        printerr("Invalid metadata iterator arguments\n");
+        return ERROR;
+    }
+
+    const char *tensor_name;
+    json_t *json_layer;
+    json_object_foreach(h->json_root, tensor_name, json_layer)
+    {
+        if (strcmp(tensor_name, "__metadata__") == 0)
+        {
+            continue;
+        }
+
+        if (!Safetensors_is_tensor_json_entry(json_layer))
+        {
+            continue;
+        }
+
+        SafetensorsLayer *layer = (SafetensorsLayer *) malloc(sizeof(SafetensorsLayer));
+        if (layer == NULL)
+        {
+            printerr("Error allocating tensor metadata layer\n");
+            return ERROR;
+        }
+
+        if (SafetensorsLayer_parse(json_layer, layer) != OK)
+        {
+            free(layer);
+            printerr("Error parsing tensor metadata for '%s'\n", tensor_name);
+            return ERROR;
+        }
+
+        SafetensorsTensorMetadata metadata = {
+            .name = tensor_name,
+            .dtype = layer->dtype,
+            .shape = layer->shape,
+            .shape_size = layer->shape_size,
+        };
+
+        CallmStatusCode visitor_status = visitor(&metadata, context);
+        SafetensorsLayer_free(layer);
+        if (visitor_status != OK)
+        {
+            return visitor_status;
+        }
+    }
+
     return OK;
 }
 

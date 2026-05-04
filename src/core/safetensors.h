@@ -15,10 +15,25 @@ typedef struct SafetensorsLayer SafetensorsLayer;
 
 typedef struct Safetensors Safetensors;
 
+typedef struct
+{
+    const char *name;
+    enum Dtype dtype;
+    const int *shape;
+    int shape_size;
+} SafetensorsTensorMetadata;
+
+typedef CallmStatusCode (*SafetensorsTensorMetadataVisitor)(const SafetensorsTensorMetadata *metadata, void *context);
+
 Matrix *Safetensors_load_matrix(const char *tensor_name, const Safetensors *header);
 
 CallmStatusCode Safetensors_get_layer_by_name(const Safetensors *header, const char *layer_name,
                                               SafetensorsLayer **layer);
+
+CallmStatusCode Safetensors_iterate_tensor_metadata(const Safetensors *header, SafetensorsTensorMetadataVisitor visitor,
+                                                    void *context);
+
+const char *Safetensors_dtype_to_string(enum Dtype dtype);
 
 static CallmStatusCode Safetensors_parse(Safetensors *h, const char *header_content);
 

@@ -42,6 +42,17 @@ run:
 	@./build/src/main/callm
 .PHONY: run
 
+# Build the safeparser CLI target
+build-safeparser:
+	@cd build && make safeparser
+.PHONY: build-safeparser
+
+# Build and run safeparser unit tests
+test-safeparser:
+	@cd build && make safeparser callm_test_safeparser_query_options callm_test_safeparser_filtering callm_test_safeparser_sorting
+	@cd build/tests/unit && ctest --output-on-failure -R "safeparser_(query_options|filtering|sorting)"
+.PHONY: test-safeparser
+
 # Run the tests (needs to be built as devfirst)
 test:
 	@cd build && make
