@@ -1,5 +1,6 @@
 PROGRAM = callm
 CC = gcc
+BUILD_DIR ?= cmake-build-debug
 
 all: run
 
@@ -44,13 +45,14 @@ run:
 
 # Build the safeparser CLI target
 build-safeparser:
-	@cd build && make safeparser
+	@cmake --build $(BUILD_DIR) --target safeparser
+	@cp ./cmake-build-debug/src/safeparser/safeparser ./bins/safeparser
 .PHONY: build-safeparser
 
 # Build and run safeparser unit tests
 test-safeparser:
-	@cd build && make safeparser callm_test_safeparser_query_options callm_test_safeparser_filtering callm_test_safeparser_sorting
-	@cd build/tests/unit && ctest --output-on-failure -R "safeparser_(query_options|filtering|sorting)"
+	@cmake --build $(BUILD_DIR) --target safeparser callm_test_safeparser_query_options callm_test_safeparser_filtering callm_test_safeparser_sorting
+	@ctest --test-dir $(BUILD_DIR) --output-on-failure -R "safeparser_(query_options|filtering|sorting)"
 .PHONY: test-safeparser
 
 # Run the tests (needs to be built as devfirst)
