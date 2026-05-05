@@ -9,3 +9,7 @@ add_test(NAME test_safeparser_filtering COMMAND callm_test_safeparser_filtering)
 add_executable(callm_test_safeparser_sorting "${CMAKE_CURRENT_SOURCE_DIR}/test_sorting.c")
 target_link_libraries(callm_test_safeparser_sorting PRIVATE callm_safeparser unity)
 add_test(NAME test_safeparser_sorting COMMAND callm_test_safeparser_sorting)
+
+add_executable(callm_test_safeparser_output "${CMAKE_CURRENT_SOURCE_DIR}/test_output.c")
+target_link_libraries(callm_test_safeparser_output PRIVATE callm_safeparser unity)
+add_test(NAME test_safeparser_output COMMAND callm_test_safeparser_output)

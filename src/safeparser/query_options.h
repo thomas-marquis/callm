@@ -12,6 +12,12 @@ typedef enum
     QUERY_SORT_BY_DTYPE,
 } QuerySortBy;
 
+typedef enum
+{
+    QUERY_OUTPUT_MODE_TEXT,
+    QUERY_OUTPUT_MODE_CSV,
+} QueryOutputMode;
+
 typedef struct
 {
     int show_help;
@@ -28,6 +34,7 @@ typedef struct
     enum Dtype filter_dtype;
 
     QuerySortBy sort_by;
+    QueryOutputMode output_mode;
 } QueryOptions;
 
 void QueryOptions_init(QueryOptions *options);

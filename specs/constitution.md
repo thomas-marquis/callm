@@ -69,6 +69,7 @@ What you need to do:
 - Expected folder structure
 - If some of the existing code needed to be updated and how
 - The testing strategy
+- If any new targets should be added to the main `Makefile` or not
 - Technical risks and limitations
 - The main implementation steps (but not the details)
 - Don't update the code

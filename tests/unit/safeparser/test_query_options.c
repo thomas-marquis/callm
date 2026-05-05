@@ -59,6 +59,53 @@ test_should_fail_on_invalid_shape_filter()
 }
 
 void
+test_should_default_output_mode_to_text_when_output_option_is_missing()
+{
+    char *argv[] = { "safeparser", "model.safetensors" };
+    QueryOptions options;
+
+    TEST_ASSERT_EQUAL(OK, QueryOptions_parse(2, argv, &options));
+    TEST_ASSERT_EQUAL_INT(QUERY_OUTPUT_MODE_TEXT, options.output_mode);
+
+    QueryOptions_free(&options);
+}
+
+void
+test_should_parse_output_mode_text()
+{
+    char *argv[] = { "safeparser", "--output", "text", "model.safetensors" };
+    QueryOptions options;
+
+    TEST_ASSERT_EQUAL(OK, QueryOptions_parse(4, argv, &options));
+    TEST_ASSERT_EQUAL_INT(QUERY_OUTPUT_MODE_TEXT, options.output_mode);
+
+    QueryOptions_free(&options);
+}
+
+void
+test_should_parse_output_mode_csv()
+{
+    char *argv[] = { "safeparser", "--output", "csv", "model.safetensors" };
+    QueryOptions options;
+
+    TEST_ASSERT_EQUAL(OK, QueryOptions_parse(4, argv, &options));
+    TEST_ASSERT_EQUAL_INT(QUERY_OUTPUT_MODE_CSV, options.output_mode);
+
+    QueryOptions_free(&options);
+}
+
+void
+test_should_fail_on_invalid_output_mode()
+{
+    char *argv[] = { "safeparser", "--output", "yaml", "model.safetensors" };
+    QueryOptions options;
+
+    TEST_ASSERT_EQUAL(ERROR, QueryOptions_parse(4, argv, &options));
+
+    QueryOptions_free(&options);
+}
+
+void
 test_should_parse_combined_filters_and_sort()
 {
     char *argv[] = { "safeparser",     "--filter-name", "layer.weight", "--filter-shape", "4096,11008",
@@ -80,6 +127,7 @@ test_should_parse_combined_filters_and_sort()
     TEST_ASSERT_EQUAL_INT(BF16, options.filter_dtype);
 
     TEST_ASSERT_EQUAL_INT(QUERY_SORT_BY_DTYPE, options.sort_by);
+    TEST_ASSERT_EQUAL_INT(QUERY_OUTPUT_MODE_TEXT, options.output_mode);
 
     QueryOptions_free(&options);
 }
@@ -92,6 +140,10 @@ main(void)
     RUN_TEST(test_should_fail_when_missing_file_path);
     RUN_TEST(test_should_fail_on_invalid_sort_key);
     RUN_TEST(test_should_fail_on_invalid_shape_filter);
+    RUN_TEST(test_should_default_output_mode_to_text_when_output_option_is_missing);
+    RUN_TEST(test_should_parse_output_mode_text);
+    RUN_TEST(test_should_parse_output_mode_csv);
+    RUN_TEST(test_should_fail_on_invalid_output_mode);
     RUN_TEST(test_should_parse_combined_filters_and_sort);
     return UNITY_END();
 }

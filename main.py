@@ -9,10 +9,10 @@ from llama_python.configuration import LlamaConfig
 from llama_python.model import LlamaForCausalLM, LlamaModel
 from llama_python.tokenizer import PreTrainedTokenizerFast
 
-tokenizer_config: dict = json.load(open("resources/original_llama/tokenizer_config.json", "r"))
-model_config: dict = json.load(open("resources/original_llama/config.json", "r"))
+tokenizer_config: dict = json.load(open("resources/models/original_llama/tokenizer_config.json", "r"))
+model_config: dict = json.load(open("resources/models/original_llama/config.json", "r"))
 
-encoder_file = "resources/tokenizer.model"
+encoder_file = "resources/models/original_llama/tokenizer.model"
 cache_dir = "hf-cache"
 model_config_path = "config.json"
 model_weights_path = "model2.safetensors"
@@ -32,7 +32,6 @@ res = llm.generate(token_ids)
 print(res)
 
 print("DONE MAN")
-
 
 exit(0)
 

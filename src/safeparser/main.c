@@ -48,7 +48,7 @@ main(int argc, char **argv)
 
     MetadataView_sort(&filtered, options.sort_by);
 
-    if (Output_print(&filtered) != OK)
+    if (Output_print(&filtered, options.output_mode) != OK)
     {
         printerr("Failed to print metadata\n");
         MetadataView_free(&filtered);

@@ -25,3 +25,7 @@ hf-cache
 /secrets.json
 .idea
 /demo.ipynb
+!/resources/models/.keep
+/resources/models/*
+/bins/*
+!/bins/.keep

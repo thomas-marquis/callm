@@ -19,6 +19,7 @@ QueryOptions_init(QueryOptions *options)
     options->has_filter_dtype = 0;
     options->filter_dtype = F32;
     options->sort_by = QUERY_SORT_BY_NAME;
+    options->output_mode = QUERY_OUTPUT_MODE_TEXT;
 }
 
 void
@@ -42,7 +43,27 @@ QueryOptions_print_help(void)
     printf("  --filter-shape <D1,D2,...>   Exact shape match, comma-separated dimensions\n");
     printf("  --filter-dtype <DTYPE>       Dtype filter (supported: F32, BF16)\n");
     printf("  --sort-by <name|shape|dtype> Sort output by a single key (ascending)\n");
+    printf("  --output <text|csv>          Output format (default: text)\n");
     printf("  -h, --help                   Show this help message and exit\n");
+}
+
+static CallmStatusCode
+QueryOptions_parse_output_mode(const char *output_mode_string, QueryOutputMode *output_mode)
+{
+    if (strcmp(output_mode_string, "text") == 0)
+    {
+        *output_mode = QUERY_OUTPUT_MODE_TEXT;
+        return OK;
+    }
+
+    if (strcmp(output_mode_string, "csv") == 0)
+    {
+        *output_mode = QUERY_OUTPUT_MODE_CSV;
+        return OK;
+    }
+
+    printerr("Invalid output mode: '%s' (supported: text, csv)\n", output_mode_string);
+    return ERROR;
 }
 
 static CallmStatusCode
@@ -238,6 +259,21 @@ QueryOptions_parse(int argc, char **argv, QueryOptions *options)
             }
 
             if (QueryOptions_parse_sort(argv[++i], &options->sort_by) != OK)
+            {
+                return ERROR;
+            }
+            continue;
+        }
+
+        if (strcmp(arg, "--output") == 0)
+        {
+            if (i + 1 >= argc)
+            {
+                printerr("Missing value for --output\n");
+                return ERROR;
+            }
+
+            if (QueryOptions_parse_output_mode(argv[++i], &options->output_mode) != OK)
             {
                 return ERROR;
             }
