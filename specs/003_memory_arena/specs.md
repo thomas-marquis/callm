@@ -26,13 +26,13 @@ Other considerations:
   must be set by the user on configuration, and not by the library itself.
 - The configuration process is not thread safe by design
 - We assume the user knows exactly how much memory he needs to allocate beforehand.
-- Block names must be unique. An error must be returned during configuration if the user tries to configure a block
-  again.
+- Block names must be unique. An error (`Arena_ERROR`) must be returned during configuration if the user tries to
+  configure a block with a name that already exists.
 
 Pseudocode example (it is not the actual or expected implementation, neither a source of truth, feel free to change
 it):
 
-```c++
+```c
 typedef struct Arena Arena;
 
 typedef enum ArenaStatus {
@@ -40,7 +40,10 @@ typedef enum ArenaStatus {
     Arena_ERROR,
 } ArenaStatus;
 
-////// constructor / descturctor
+// Hint type for storage hints
+typedef uint32_t ArenaHint;
+
+////// constructor / destructor
 
 Arena* 
 Arena_new(void);
@@ -51,40 +54,52 @@ Arena_free(Arena* arena);
 ////// config: block definition
 
 // Configures a named memory block in the arena.
-// `storage_hint` is a user-defined integer to specify how the block should be stored (e.g., cache-optimized, aligned, etc.).
+// `size` is the block size IN BYTES.
+// `storage_hint` is a library-defined hint to specify how the block should be stored.
+// Returns Arena_ERROR if:
+//   - name is not unique (already configured)
+//   - called after Arena_allocate()
+//   - allocation would exceed arena capacity
 ArenaStatus
-Arena_config_int_block(Arena* arena, const char* name, size_t size, int storage_hint);
+Arena_config_int_block(Arena* arena, const char* name, size_t size, ArenaHint storage_hint);
 
 ArenaStatus
-Arena_config_float_block(Arena* arena, const char* name, size_t size, int storage_hint);
+Arena_config_float_block(Arena* arena, const char* name, size_t size, ArenaHint storage_hint);
 
 // Here, we assume the bf16 type does exist
 ArenaStatus
-Arena_config_bf16_block(Arena* arena, const char* name, size_t size, int storage_hint);
+Arena_config_bf16_block(Arena* arena, const char* name, size_t size, ArenaHint storage_hint);
 
 ////// allocation: config no longer possible after that
 
 // Allocates all configured blocks in the arena.
-// Returns 0 on success, non-zero on error.
+// Returns Arena_OK on success, Arena_ERROR on error.
 // This function must be called only once per arena.
-// Configuration is no longer possible after allocation, and will return error.
+// Configuration is no longer possible after allocation, and will return Arena_ERROR.
 ArenaStatus
 Arena_allocate(Arena* arena);
 
 // Returns a pointer to the named block, or NULL if not found or on error.
-// If the specified block name does not correspond to an integer block, an error is returned.
 int *
-arena_get_int_block(Arena* arena, const char* name);
+Arena_get_int_block(Arena* arena, const char* name);
 
 float *
-arena_get_float_block(Arena* arena, const char* name);
+Arena_get_float_block(Arena* arena, const char* name);
 
 bf16 *
-arena_get_bf16_block(Arena* arena, const char* name);
+Arena_get_bf16_block(Arena* arena, const char* name);
 
-// Returns the size of the named block, or 0 if not found or on error.
+// Generic block access (type-agnostic)
+void *
+Arena_get_block(Arena* arena, const char* name);
+
+// Returns the size of the named block in bytes, or 0 if not found or on error.
 size_t 
-arena_get_block_size(Arena* arena, const char* name);
+Arena_get_block_size(Arena* arena, const char* name);
+
+// Returns the storage hint that was configured for this block, or 0 if not found or on error.
+ArenaHint 
+Arena_get_block_hint(Arena* arena, const char* name);
 ```
 
 What the memory looks like:
@@ -109,20 +124,21 @@ C = A @ B
 #  [4, 5, 6]]   [40+150+300,  80+200+360]]
 ```
 
-```c++
+```c
 Arena *arena = Arena_new();
-Arena_config_int_block(arena, "A", 6); // 6 is the block size
-Arena_config_int_block(arena, "B", 6);
+// Size is in BYTES: 6 integers * sizeof(int) = 6 * 4 = 24 bytes on typical systems
+Arena_config_int_block(arena, "A", 6 * sizeof(int), 0);
+Arena_config_int_block(arena, "B", 6 * sizeof(int), 0);
 Arena_allocate(arena);
 ```
 
 | address | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11|
-| block.s | A | A | A | A | A | A | B | B | B | B | B | B |
+| block | A | A | A | A | A | A | B | B | B | B | B | B |
 | content | 1 | 2 | 3 | 4 | 5 | 6 | 10| 20| 30| 40| 50| 60|
 
 Get block:
 
-```c++
+```c
 int *block_a = (int *)Arena_get_block(arena, "A");
 // block_a[0] == 1
 // block_a[1] == 2
@@ -168,11 +184,11 @@ sequential memory automatically.
 CPU instructions, especially SIMD (Single Instruction Multiple Data) instructions like SSE, AVX, and AVX-512, require
 data to be aligned to specific byte boundaries:
 
-| Instruction Set | Register Size | Required Alignment |
-|-----------------|---------------|--------------------|
-| SSE             | 128-bit (16B) | 16-byte boundary   |
-| AVX             | 256-bit (32B) | 32-byte boundary   |
-| AVX-512         | 512-bit (64B) | 64-byte boundary   |
+| Instruction Set | Register Size | Required Alignment             |
+|-----------------|---------------|--------------------------------|
+| SSE             | 128-bit (16B) | 16-byte boundary               |
+| AVX             | 256-bit (32B) | 32-byte boundary               |
+| AVX-512         | 512-bit (64B) | 64-byte alignment (cache line) |
 
 An address is "aligned to N bytes" if `address % N == 0`. For example:
 
@@ -262,7 +278,7 @@ for (int i = 0; i < n; i++) {
 
 **The key insight**: Data accessed together should be stored together in memory.
 
-**Example - Matrix Multiplication (C = A @ B):**
+**Example - Matrix Multiplication (C = A @ B)**:
 
 ```c
 // Bad: A and B are far apart in memory
@@ -282,6 +298,34 @@ it also loads cache lines for B, reducing cache misses during the multiplication
 - Group "hot" data (frequently accessed together) with same placement order
 - Separate "cold" data (rarely accessed) with higher placement order values
 - Place data in order of access during computation
+
+### Contiguity for Matrix Multiplication Optimization
+
+For large matrix multiplication (C = A @ B), where cache efficiency is critical, use `ARENA_HINT_PLACE_CONTIGUOUS`
+to guarantee zero padding between blocks. This ensures that the tail of one matrix and the head of the next share
+the same cache line (64 bytes), maximizing cache line utilization during the multiplication.
+
+**Example**:
+
+```c
+Arena *arena = Arena_new();
+// Place A and B contiguously for cache efficiency during A @ B
+Arena_config_bf16_block(arena, "A", size_A, 
+                       ARENA_HINT_PLACE_ORDER(0) | ARENA_HINT_PLACE_CONTIGUOUS);
+Arena_config_bf16_block(arena, "B", size_B, 
+                       ARENA_HINT_PLACE_ORDER(0) | ARENA_HINT_PLACE_CONTIGUOUS);
+// C follows in order 1
+Arena_config_bf16_block(arena, "C", size_C, ARENA_HINT_PLACE_ORDER(1));
+Arena_allocate(arena);
+// Layout: [A][B][C] with ZERO padding between A and B
+```
+
+**Why this matters for matrix multiplication**:
+
+- Cache lines are 64 bytes
+- When computing `C[i,j] = sum_k(A[i,k] * B[k,j])`, sequential `k` accesses benefit from shared cache lines
+- If A and B are contiguous, the last cache line of A and the first cache line of B may overlap, reducing cache misses
+- For row-major A and column-major B, this is especially beneficial
 
 ### Why These Hints Are Advisory (Not Enforced)
 
@@ -306,13 +350,14 @@ placement ordering.
 ### Scope
 
 - The arena allocates a single contiguous memory region containing all configured blocks
-- Blocks are configured by name, size (in bytes), and optional storage hints before allocation
-- **By default, blocks are laid out in the order they were configured**
+- **Blocks are configured by name, size (IN BYTES), and optional storage hints before allocation**
+- By default, blocks are laid out in the order they were configured
 - Storage hints can override the default ordering to place specific blocks first or group blocks together
 - Once allocated, the configuration is immutable
 - Blocks can be retrieved by name for read/write operations
 - The module does NOT manage the lifetime of data stored in blocks (users are responsible for their own data)
 - The module does NOT interpret the data stored in blocks (type-agnostic raw memory)
+- Block names must be unique; attempting to configure a duplicate name returns `Arena_ERROR`
 
 ### Core requirements
 
@@ -326,13 +371,16 @@ placement ordering.
 
 - `Arena_config_<type>_block()`: Convenience function for <type>-sized blocks (storage_hint defaults to 0)
 - Multiple blocks can be configured sequentially
-- Configuration is impossible after `Arena_allocate()` is called
+- Configuration returns `Arena_ERROR` if called after `Arena_allocate()` or if the block name is a duplicate
+- All size parameters are in **bytes**
 
 **Block access:**
 
-- `Arena_get_block()`: Returns a pointer to a named block's memory
-- `Arena_get_block_size()`: Returns the size of a named block
-- Both functions return NULL/0 on error (block not found, arena not allocated)
+- `Arena_get_block()`: Returns a pointer to a named block's memory (generic, type-agnostic)
+- `Arena_get_int_block()`, `Arena_get_float_block()`, `Arena_get_bf16_block()`: Type-specific accessors
+- `Arena_get_block_size()`: Returns the size of a named block in bytes
+- `Arena_get_block_hint()`: Returns the storage hint configured for a named block
+- All accessor functions return NULL/0 on error (block not found, arena not allocated)
 
 **Memory layout:**
 
@@ -387,7 +435,13 @@ typedef uint32_t ArenaHint;
 #define ARENA_HINT_ACCESS_RANDOM    (1u << 9)  // Random access (e.g., lookups)
 
 // ============================================================================
-// CATEGORY 4: Placement Order Hints (bits 16-23)
+// CATEGORY 4: Contiguity Hint (bit 10)
+// ACTIONABLE: Guarantees zero padding between this block and the next block with the same placement order
+// ============================================================================
+#define ARENA_HINT_PLACE_CONTIGUOUS (1u << 10)  // No padding after this block
+
+// ============================================================================
+// CATEGORY 5: Placement Order Hints (bits 16-23)
 // ACTIONABLE: The arena USES these to determine block layout order
 // ============================================================================
 // Default behavior (no placement hint): blocks follow configuration order
@@ -395,13 +449,14 @@ typedef uint32_t ArenaHint;
 // With ARENA_HINT_PLACE_ORDER(n):
 // - Blocks are sorted by their order value (lower = placed first)
 // - Blocks with the same order value maintain their configuration order
-// - Order values: 0-255 (use 0 for "first", 1 for "second", etc.)
-// - Blocks without explicit order (value 0 in these bits) go to position 256 (last)
+// - Order values: 0-254 (use 0 for "first", 1 for "second", etc.)
+// - Value 255 in bits 16-23 is reserved to mean "no explicit order"
+// - Blocks without explicit order (bits 16-23 == 255 or bits 16-23 == 0 with no explicit flag) go to position 256 (last)
 #define ARENA_HINT_PLACE_ORDER_MASK (0xFFu << 16)
 #define ARENA_HINT_PLACE_ORDER(n)    (((n) & 0xFF) << 16)
 
 // ============================================================================
-// CATEGORY 5: Usage Hints (bits 24-27)
+// CATEGORY 6: Usage Hints (bits 24-27)
 // Advisory: Describes the purpose of the memory block
 // ============================================================================
 #define ARENA_HINT_USAGE_DEFAULT     0u           // No specific usage
@@ -426,18 +481,32 @@ their own hash table mapping block names to custom data).
 
 #### How the arena uses placement hints
 
-The **only** hints that the arena **actively uses** are the placement order hints (`ARENA_HINT_PLACE_ORDER`). All other
-hints are stored as metadata that users can retrieve and use in their own code.
+The **only** hints that the arena **actively uses** are:
+
+1. Placement order hints (`ARENA_HINT_PLACE_ORDER`) - to determine block ordering
+2. Contiguity hint (`ARENA_HINT_PLACE_CONTIGUOUS`) - to eliminate padding between blocks
+
+All other hints are stored as metadata that users can retrieve and use in their own code.
 
 **Placement algorithm:**
 
 1. Collect all configured blocks
 2. For each block, extract its placement order value from the hint:
-    - If `ARENA_HINT_PLACE_ORDER(n)` is set: use `n` as the sort key
-    - If no placement order hint: use 256 as the sort key (places these blocks after explicit-order blocks)
+    - Extract the order value from bits 16-23 using `ARENA_HINT_PLACE_ORDER_MASK`
+    - If the extracted value is 255: the block has NO explicit placement order, use 256 as the sort key
+    - If the extracted value is 0-254: use that value as the sort key
 3. Sort blocks by their placement order value (ascending)
 4. Within blocks that have the same placement order value, maintain their original configuration order
 5. Lay out blocks contiguously in this sorted order
+6. When `ARENA_HINT_PLACE_CONTIGUOUS` is set on a block, ensure ZERO padding bytes between that block and the next block
+   in the sorted order (if that next block has the same placement order value)
+
+**Important note on placement order values:**
+
+- Valid explicit order values: 0-254
+- Value 255 in bits 16-23 is reserved to indicate "no explicit order"
+- Blocks with no explicit order (sort key = 256) are placed after all explicitly-ordered blocks
+- `ARENA_HINT_PLACE_ORDER(255)` is INVALID and should not be used
 
 **Example:**
 
@@ -464,8 +533,10 @@ will maintain their configuration order within that group.
 ```c
 Arena *arena = Arena_new();
 // For matrix multiplication: A and B are used together, place them first and contiguous
-Arena_config_bf16_block(arena, "A", 1000000, ARENA_HINT_PLACE_ORDER(0));
-Arena_config_bf16_block(arena, "B", 1000000, ARENA_HINT_PLACE_ORDER(0)); // Same order = contiguous with A
+Arena_config_bf16_block(arena, "A", 1000000, 
+                       ARENA_HINT_PLACE_ORDER(0) | ARENA_HINT_PLACE_CONTIGUOUS);
+Arena_config_bf16_block(arena, "B", 1000000, 
+                       ARENA_HINT_PLACE_ORDER(0) | ARENA_HINT_PLACE_CONTIGUOUS);
 // Output matrix comes after
 Arena_config_bf16_block(arena, "C", 1000000, ARENA_HINT_PLACE_ORDER(1));
 // Scratch space last
@@ -473,7 +544,7 @@ Arena_config_bf16_block(arena, "scratch", 100000, ARENA_HINT_PLACE_ORDER(2));
 
 Arena_allocate(arena);
 // Resulting layout: [A][B][C][scratch]
-// A and B are contiguous (good for cache when multiplying A @ B)
+// A and B are contiguous with ZERO padding (good for cache when multiplying A @ B)
 ```
 
 #### How users apply advisory hints
@@ -485,7 +556,7 @@ apply them in their own code:
 // After allocating, user can check hints to decide how to use blocks
 void *ptr = Arena_get_block(arena, "weights");
 size_t size = Arena_get_block_size(arena, "weights");
-ArenaHint hint = Arena_get_block_hint(arena, "weights"); // New helper function
+ArenaHint hint = Arena_get_block_hint(arena, "weights");
 
 // Apply alignment if needed
 if (hint & ARENA_HINT_ALIGN_64B) {
@@ -524,7 +595,7 @@ Memory layout:
 ```
 Address range     | Block        | Size   | Notes
 -----------------|--------------|--------|----------------------
-0x0000-0x3D08FF   | weights      | 4MB    | First configured
+0x000000-0x3D08FF | weights      | 4MB    | First configured
 0x3D0900-0x5A517F | activations  | 2MB    | Second configured
 0x5A5180-0x69F4BF | scratch      | 1MB    | Third configured
 ```
@@ -536,17 +607,17 @@ For matrix multiplication C = A @ B, we want A and B contiguous for cache effici
 ```c
 Arena *arena = Arena_new();
 
-// Input matrix A (1024x1024 floats)
-Arena_config_bf16_block(arena, "A", 1024*1024*sizeof(float),
-                   ARENA_HINT_PLACE_ORDER(0) | ARENA_HINT_ALIGN_64B);
+// Input matrix A (1024x1024 bf16 elements)
+Arena_config_bf16_block(arena, "A", 1024*1024*sizeof(bf16),
+                   ARENA_HINT_PLACE_ORDER(0) | ARENA_HINT_PLACE_CONTIGUOUS | ARENA_HINT_ALIGN_64B);
 
-// Weight matrix B (1024x1024 floats) - same order as A = contiguous
-Arena_config_bf16_block(arena, "B", 1024*1024*sizeof(float),
-                   ARENA_HINT_PLACE_ORDER(0) | ARENA_HINT_ALIGN_64B);
+// Weight matrix B (1024x1024 bf16 elements) - same order as A = contiguous
+Arena_config_bf16_block(arena, "B", 1024*1024*sizeof(bf16),
+                   ARENA_HINT_PLACE_ORDER(0) | ARENA_HINT_PLACE_CONTIGUOUS | ARENA_HINT_ALIGN_64B);
 
-// Output matrix C (1024x1024 floats)
-Arena_config_bf16_block(arena, "C", 1024*1024*sizeof(float),
-                   ARENA_HINT_PLACE_ORDER(1));
+// Output matrix C (1024x1024 bf16 elements)
+Arena_config_bf16_block(arena, "C", 1024*1024*sizeof(bf16),
+                   ARENA_HINT_PLACE_ORDER(1) | ARENA_HINT_ALIGN_64B);
 
 // Scratch space for intermediate calculations
 Arena_config_bf16_block(arena, "scratch", 1000000,
@@ -555,19 +626,19 @@ Arena_config_bf16_block(arena, "scratch", 1000000,
 Arena_allocate(arena);
 ```
 
-Memory layout:
+Memory layout (assuming bf16=2B, so 1024x1024 = 2MB per matrix):
 
 ```
 Address range        | Block   | Size   | Notes
---------------------|---------|--------|------------------------------
-0x0000-0x0FFFBF      | A       | 4MB    | Order 0, first in group
-0x100000-0x1FFFFF    | B       | 4MB    | Order 0, contiguous with A
-0x200000-0x2FFFFF    | C       | 4MB    | Order 1
-0x300000-0x3F3FFF    | scratch | ~1MB   | Order 2
+--------------------|---------|--------|----------------------------------------------
+0x000000-0x1FFFFF    | A       | 2MB    | Order 0, first in group, 64B aligned
+0x200000-0x3FFFFF    | B       | 2MB    | Order 0, contiguous with A, no padding
+0x400000-0x5FFFFF    | C       | 2MB    | Order 1, 64B aligned
+0x600000-0x6F3FFF    | scratch | ~1MB   | Order 2
 ```
 
-When the user accesses these for matrix multiplication, they know A and B are adjacent in memory, improving cache
-locality.
+When the user accesses these for matrix multiplication, they know A and B are adjacent in memory with no padding,
+improving cache locality.
 
 #### Example 3: Mixed types with placement control
 
@@ -581,13 +652,13 @@ Arena_config_bf16_block(arena, "bf16_activations", 2000000 * sizeof(bf16),
                    ARENA_HINT_CACHE_KEEP);
 
 // Float weights (4 bytes per element) - next
-Arena_config_bf16_block(arena, "float_weights", 1000000 * sizeof(float),
+Arena_config_float_block(arena, "float_weights", 1000000 * sizeof(float),
                    ARENA_HINT_PLACE_ORDER(1) | 
                    ARENA_HINT_ALIGN_64B | 
                    ARENA_HINT_USAGE_WEIGHTS);
 
 // Int indices - last
-Arena_config_bf16_block(arena, "int_indices", 500000 * sizeof(int),
+Arena_config_int_block(arena, "int_indices", 500000 * sizeof(int),
                    ARENA_HINT_PLACE_ORDER(2));
 
 Arena_allocate(arena);
@@ -598,7 +669,7 @@ Memory layout (assuming bf16=2B, float=4B, int=4B):
 ```
 Address range     | Block              | Size    | Notes
 -----------------|--------------------|---------|-------------------
-0x0000-0x03D08F   | bf16_activations   | 4MB     | Order 0, first
+0x000000-0x03D08F | bf16_activations   | 4MB     | Order 0, first
 0x03D090-0x07508F | float_weights      | 4MB     | Order 1, 64B align
 0x075090-0x08E37F | int_indices        | 2MB     | Order 2, last
 ```
@@ -625,10 +696,11 @@ Arena_config_float_block(arena, "avx512_vectors", 10000 * 64,
 Arena_allocate(arena);
 
 // When using the blocks, user applies alignment:
-float *sse = (float *)align_pointer(arena_get_block(arena, "sse_vectors"), 16);
-float *avx = (float *)align_pointer(arena_get_block(arena, "avx_vectors"), 32);
-float *avx512 = (float *)align_pointer(arena_get_block(arena, "avx512_vectors"), 64);
+float *sse = (float *)Arena_get_block(arena, "sse_vectors");
+float *avx = (float *)Arena_get_block(arena, "avx_vectors");
+float *avx512 = (float *)Arena_get_block(arena, "avx512_vectors");
 
+// Verify alignment and use
 // Now safe for SIMD operations
 __m128 sse_vec = _mm_load_ps(sse);        // Requires 16B alignment
 __m256 avx_vec = _mm256_load_ps(avx);      // Requires 32B alignment
@@ -659,7 +731,7 @@ Memory layout:
 ```
 Address range     | Block      | Size   | Notes
 -----------------|------------|--------|------------------------
-0x0000-0x0F3FFF   | input      | 1MB    | Hot group, first
+0x000000-0x0F3FFF | input      | 1MB    | Hot group, first
 0x0F4000-0x4E7FFF | weights    | 4MB    | Hot group, contiguous
 0x4E8000-0x5DBFFF | output     | 1MB    | Hot group, contiguous
 0x5DC000-0x6CFBFF | backup_A   | 1MB    | Cold group
@@ -699,22 +771,16 @@ Arena_allocate(arena);
 
 ### Error handling
 
-- All configuration and access functions return an `ArenaStatus` enum (OK or ERROR)
-- `Arena_allocate()` fails if called more than once on the same arena
-- `Arena_config_bf16_block()`/`Arena_config_int_block()`/etc. fail if called after allocation
-- `Arena_get_block()` returns NULL if block name not found or arena not allocated
+- All configuration functions return an `ArenaStatus` enum (`Arena_OK` or `Arena_ERROR`)
+- `Arena_allocate()` fails and returns `Arena_ERROR` if called more than once on the same arena
+- `Arena_config_int_block()`, `Arena_config_float_block()`, `Arena_config_bf16_block()` fail and return `Arena_ERROR`
+  if:
+    - Called after `Arena_allocate()`
+    - The block name is a duplicate (already configured)
+- `Arena_get_block()`, `Arena_get_int_block()`, `Arena_get_float_block()`, `Arena_get_bf16_block()` return NULL if block
+  name not found or arena not allocated
 - `Arena_get_block_size()` returns 0 if block name not found or arena not allocated
-
-### New API consideration
-
-To support retrieving hints (for users to apply advisory hints in their code), consider adding:
-
-```c
-// Returns the storage hint that was configured for this block
-ArenaHint Arena_get_block_hint(Arena *arena, const char *name);
-```
-
-This allows users to check alignment requirements and apply them when accessing blocks.
+- `Arena_get_block_hint()` returns 0 if block name not found or arena not allocated
 
 ## Risks and limitations
 
@@ -726,12 +792,14 @@ This allows users to check alignment requirements and apply them when accessing 
 - **No automatic alignment**: Alignment hints are advisory only. Users must manually align pointers if needed using the
   provided hints.
 - **Memory waste**: Contiguous allocation may have padding between blocks for alignment. Users control this through
-  placement hints.
+  placement hints and the `ARENA_HINT_PLACE_CONTIGUOUS` flag.
 - **Thread safety**: The current specification does not address thread safety. Concurrent access to configuration or
   allocation functions is undefined behavior.
-- **Block naming**: No validation on block names is specified. Users must ensure names are unique and valid C strings.
+- **Block naming**: No validation on block names is specified beyond uniqueness. Users must ensure names are unique and
+  valid C strings.
 - **No ownership tracking**: The arena does not track what data users store in blocks. Users must manage their own data
   lifetimes.
 - **Type safety**: The arena is type-agnostic. Users must ensure correct type casting and size calculations.
 - **Hint conflicts**: If users specify conflicting placement orders, the arena uses the sort algorithm described (lower
   order values first, then config order). There is no error for "conflicting" hints.
+- **Placement order 255**: The value 255 for `ARENA_HINT_PLACE_ORDER` is reserved and must not be used by users.
