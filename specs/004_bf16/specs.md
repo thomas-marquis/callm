@@ -41,7 +41,7 @@ Notes:
 Create a new standalone static library named `bf16` that provides a native C implementation of the bfloat16
 floating-point type, enabling the CaLLM runtime to load and perform computations directly on bfloat16 values without
 converting them to other numeric formats.
- 
+
 ### Scope
 
 - **Included**: A complete bfloat16 type implementation with arithmetic, comparison, and bit manipulation operations.
@@ -195,3 +195,5 @@ The library must:
 - SIMD support targets AVX(2) specifically (256-bit registers).
 - Software emulation must be used for all operations since AVX-512-BF16 is not assumed available.
 - The safetensors library remains unchanged; it will use the new bf16 type for reading bfloat16 data from files.
+
+
