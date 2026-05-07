@@ -1,9 +1,10 @@
+add_subdirectory(shared)
+add_subdirectory(arena)
 add_subdirectory(core)
 add_subdirectory(tokenizer)
 add_subdirectory(llm)
 add_subdirectory(main)
 add_subdirectory(monitor)
-add_subdirectory(shared)
 add_subdirectory(safeparser)
 
 if (RELEASE_TYPE STREQUAL "PYTHON")

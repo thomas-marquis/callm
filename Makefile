@@ -60,3 +60,8 @@ test:
 	@cd build && make
 	@cd build/tests && ctest --output-on-failure
 .PHONY: test
+
+playground:
+	@gcc -O2 -mavx2 playground.c -o playground
+	@./playground
+.PHONY: playground
