@@ -1,5 +1,6 @@
 add_subdirectory(shared)
 add_subdirectory(arena)
+add_subdirectory(bf16)
 add_subdirectory(core)
 add_subdirectory(tokenizer)
 add_subdirectory(llm)

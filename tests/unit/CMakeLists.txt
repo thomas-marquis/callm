@@ -1,4 +1,5 @@
 add_subdirectory(core)
+add_subdirectory(bf16)
 add_subdirectory(tokenizer)
 add_subdirectory(safeparser)
 add_subdirectory(arena)
