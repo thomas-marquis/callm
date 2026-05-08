@@ -5,6 +5,19 @@
 #include <cpuid.h>
 #endif
 
+// Forward declarations for internal array functions
+void bf16_add_arr_scalar(bf16_t *out, const bf16_t *a, const bf16_t *b, size_t n);
+void bf16_sub_arr_scalar(bf16_t *out, const bf16_t *a, const bf16_t *b, size_t n);
+void bf16_mul_arr_scalar(bf16_t *out, const bf16_t *a, const bf16_t *b, size_t n);
+void bf16_div_arr_scalar(bf16_t *out, const bf16_t *a, const bf16_t *b, size_t n);
+
+#ifdef CALLM_ENABLE_AVX2
+void bf16_add_arr_avx2(bf16_t *out, const bf16_t *a, const bf16_t *b, size_t n);
+void bf16_sub_arr_avx2(bf16_t *out, const bf16_t *a, const bf16_t *b, size_t n);
+void bf16_mul_arr_avx2(bf16_t *out, const bf16_t *a, const bf16_t *b, size_t n);
+void bf16_div_arr_avx2(bf16_t *out, const bf16_t *a, const bf16_t *b, size_t n);
+#endif
+
 bool
 bf16_cpu_has_avx2(void)
 {

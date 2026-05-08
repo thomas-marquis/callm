@@ -5,34 +5,69 @@
 #include <immintrin.h>
 #include <stdalign.h>
 
-// Helper: Vectorized bfloat16 addition for 8 elements (128 bits)
-static inline __m128i bf16_add_vec8(__m128i a, __m128i b);
+// Expand 8 bf16 values to 8 floats using AVX
+// bf16 bit pattern in uint16_t: sign(1)|exponent(8)|mantissa(7)
+// float bit pattern in uint32_t: sign(1)|exponent(8)|mantissa(23)
+// To convert: zero-extend to 32 bits, then the bf16 bits are in the upper 16 bits
 
-// Helper: Vectorized bfloat16 subtraction for 8 elements (128 bits)
-static inline __m128i bf16_sub_vec8(__m128i a, __m128i b);
+static inline __m256
+bf16_vec_to_float_vec(__m128i bf16_vec)
+{
+    // Zero-extend uint16_t to uint32_t
+    __m256i bf16_32 = _mm256_cvtepu16_epi32(bf16_vec);
+    // Shift left by 16 to place bf16 bits in float position
+    __m256i float_bits = _mm256_slli_epi32(bf16_32, 16);
+    // Cast to float
+    return _mm256_castsi256_ps(float_bits);
+}
 
-// Helper: Vectorized bfloat16 multiplication for 8 elements (128 bits)
-static inline __m128i bf16_mul_vec8(__m128i a, __m128i b);
+static inline __m128i
+float_vec_to_bf16_vec(__m256 float_vec)
+{
+    // Cast float to int32
+    __m256i float_bits = _mm256_castps_si256(float_vec);
+    // Shift right by 16 to get bf16 bits
+    __m256i bf16_32 = _mm256_srli_epi32(float_bits, 16);
+    // Pack 32-bit values to 16-bit
+    // We need to extract low and high 128-bit lanes and pack them
+    __m128i bf16_lo = _mm256_castsi256_si128(bf16_32);
+    __m128i bf16_hi = _mm256_extracti128_si256(bf16_32, 1);
+    return _mm_packus_epi32(bf16_lo, bf16_hi);
+}
 
-// Helper: Vectorized bfloat16 division for 8 elements (128 bits)
-static inline __m128i bf16_div_vec8(__m128i a, __m128i b);
+// Process 16 bf16 values (32 bytes) using AVX2
+// Load 16 bf16 = 256 bits = 2 x 128-bit registers
+// Convert each 128-bit register of 8 bf16 to 256-bit register of 8 floats
+// Do the arithmetic on floats
+// Convert back to bf16
 
-// Vectorized bfloat16 addition for 16 elements (256 bits)
 static inline __m256i
 bf16_add_vec16(__m256i a, __m256i b)
 {
+    // Extract low and high 128-bit lanes from each input
     __m128i a_lo = _mm256_castsi256_si128(a);
     __m128i a_hi = _mm256_extracti128_si256(a, 1);
     __m128i b_lo = _mm256_castsi256_si128(b);
     __m128i b_hi = _mm256_extracti128_si256(b, 1);
-
-    __m128i out_lo = bf16_add_vec8(a_lo, b_lo);
-    __m128i out_hi = bf16_add_vec8(a_hi, b_hi);
-
+    
+    // Convert bf16 to float
+    __m256 fa_lo = bf16_vec_to_float_vec(a_lo);
+    __m256 fa_hi = bf16_vec_to_float_vec(a_hi);
+    __m256 fb_lo = bf16_vec_to_float_vec(b_lo);
+    __m256 fb_hi = bf16_vec_to_float_vec(b_hi);
+    
+    // Add
+    __m256 fr_lo = _mm256_add_ps(fa_lo, fb_lo);
+    __m256 fr_hi = _mm256_add_ps(fa_hi, fb_hi);
+    
+    // Convert back to bf16
+    __m128i out_lo = float_vec_to_bf16_vec(fr_lo);
+    __m128i out_hi = float_vec_to_bf16_vec(fr_hi);
+    
+    // Combine into 256-bit result
     return _mm256_setr_m128i(out_lo, out_hi);
 }
 
-// Vectorized bfloat16 subtraction for 16 elements (256 bits)
 static inline __m256i
 bf16_sub_vec16(__m256i a, __m256i b)
 {
@@ -40,14 +75,21 @@ bf16_sub_vec16(__m256i a, __m256i b)
     __m128i a_hi = _mm256_extracti128_si256(a, 1);
     __m128i b_lo = _mm256_castsi256_si128(b);
     __m128i b_hi = _mm256_extracti128_si256(b, 1);
-
-    __m128i out_lo = bf16_sub_vec8(a_lo, b_lo);
-    __m128i out_hi = bf16_sub_vec8(a_hi, b_hi);
-
+    
+    __m256 fa_lo = bf16_vec_to_float_vec(a_lo);
+    __m256 fa_hi = bf16_vec_to_float_vec(a_hi);
+    __m256 fb_lo = bf16_vec_to_float_vec(b_lo);
+    __m256 fb_hi = bf16_vec_to_float_vec(b_hi);
+    
+    __m256 fr_lo = _mm256_sub_ps(fa_lo, fb_lo);
+    __m256 fr_hi = _mm256_sub_ps(fa_hi, fb_hi);
+    
+    __m128i out_lo = float_vec_to_bf16_vec(fr_lo);
+    __m128i out_hi = float_vec_to_bf16_vec(fr_hi);
+    
     return _mm256_setr_m128i(out_lo, out_hi);
 }
 
-// Vectorized bfloat16 multiplication for 16 elements (256 bits)
 static inline __m256i
 bf16_mul_vec16(__m256i a, __m256i b)
 {
@@ -55,14 +97,21 @@ bf16_mul_vec16(__m256i a, __m256i b)
     __m128i a_hi = _mm256_extracti128_si256(a, 1);
     __m128i b_lo = _mm256_castsi256_si128(b);
     __m128i b_hi = _mm256_extracti128_si256(b, 1);
-
-    __m128i out_lo = bf16_mul_vec8(a_lo, b_lo);
-    __m128i out_hi = bf16_mul_vec8(a_hi, b_hi);
-
+    
+    __m256 fa_lo = bf16_vec_to_float_vec(a_lo);
+    __m256 fa_hi = bf16_vec_to_float_vec(a_hi);
+    __m256 fb_lo = bf16_vec_to_float_vec(b_lo);
+    __m256 fb_hi = bf16_vec_to_float_vec(b_hi);
+    
+    __m256 fr_lo = _mm256_mul_ps(fa_lo, fb_lo);
+    __m256 fr_hi = _mm256_mul_ps(fa_hi, fb_hi);
+    
+    __m128i out_lo = float_vec_to_bf16_vec(fr_lo);
+    __m128i out_hi = float_vec_to_bf16_vec(fr_hi);
+    
     return _mm256_setr_m128i(out_lo, out_hi);
 }
 
-// Vectorized bfloat16 division for 16 elements (256 bits)
 static inline __m256i
 bf16_div_vec16(__m256i a, __m256i b)
 {
@@ -70,76 +119,19 @@ bf16_div_vec16(__m256i a, __m256i b)
     __m128i a_hi = _mm256_extracti128_si256(a, 1);
     __m128i b_lo = _mm256_castsi256_si128(b);
     __m128i b_hi = _mm256_extracti128_si256(b, 1);
-
-    __m128i out_lo = bf16_div_vec8(a_lo, b_lo);
-    __m128i out_hi = bf16_div_vec8(a_hi, b_hi);
-
+    
+    __m256 fa_lo = bf16_vec_to_float_vec(a_lo);
+    __m256 fa_hi = bf16_vec_to_float_vec(a_hi);
+    __m256 fb_lo = bf16_vec_to_float_vec(b_lo);
+    __m256 fb_hi = bf16_vec_to_float_vec(b_hi);
+    
+    __m256 fr_lo = _mm256_div_ps(fa_lo, fb_lo);
+    __m256 fr_hi = _mm256_div_ps(fa_hi, fb_hi);
+    
+    __m128i out_lo = float_vec_to_bf16_vec(fr_lo);
+    __m128i out_hi = float_vec_to_bf16_vec(fr_hi);
+    
     return _mm256_setr_m128i(out_lo, out_hi);
-}
-
-// --- 128-bit (8-element) vectorized operations ---
-static inline __m128i
-bf16_add_vec8(__m128i a, __m128i b)
-{
-    alignas(16) uint16_t a_lanes[8];
-    alignas(16) uint16_t b_lanes[8];
-    alignas(16) uint16_t out_lanes[8];
-
-    _mm_store_si128((__m128i *) a_lanes, a);
-    _mm_store_si128((__m128i *) b_lanes, b);
-
-    for (int i = 0; i < 8; i++)
-        out_lanes[i] = bf16_add_scalar(a_lanes[i], b_lanes[i]);
-
-    return _mm_load_si128((__m128i *) out_lanes);
-}
-
-static inline __m128i
-bf16_sub_vec8(__m128i a, __m128i b)
-{
-    alignas(16) uint16_t a_lanes[8];
-    alignas(16) uint16_t b_lanes[8];
-    alignas(16) uint16_t out_lanes[8];
-
-    _mm_store_si128((__m128i *) a_lanes, a);
-    _mm_store_si128((__m128i *) b_lanes, b);
-
-    for (int i = 0; i < 8; i++)
-        out_lanes[i] = bf16_sub_scalar(a_lanes[i], b_lanes[i]);
-
-    return _mm_load_si128((__m128i *) out_lanes);
-}
-
-static inline __m128i
-bf16_mul_vec8(__m128i a, __m128i b)
-{
-    alignas(16) uint16_t a_lanes[8];
-    alignas(16) uint16_t b_lanes[8];
-    alignas(16) uint16_t out_lanes[8];
-
-    _mm_store_si128((__m128i *) a_lanes, a);
-    _mm_store_si128((__m128i *) b_lanes, b);
-
-    for (int i = 0; i < 8; i++)
-        out_lanes[i] = bf16_mul_scalar(a_lanes[i], b_lanes[i]);
-
-    return _mm_load_si128((__m128i *) out_lanes);
-}
-
-static inline __m128i
-bf16_div_vec8(__m128i a, __m128i b)
-{
-    alignas(16) uint16_t a_lanes[8];
-    alignas(16) uint16_t b_lanes[8];
-    alignas(16) uint16_t out_lanes[8];
-
-    _mm_store_si128((__m128i *) a_lanes, a);
-    _mm_store_si128((__m128i *) b_lanes, b);
-
-    for (int i = 0; i < 8; i++)
-        out_lanes[i] = bf16_div_scalar(a_lanes[i], b_lanes[i]);
-
-    return _mm_load_si128((__m128i *) out_lanes);
 }
 
 // --- Array operations ---

@@ -272,20 +272,7 @@ bf16_ge_scalar(bf16_t a, bf16_t b)
     return bf16_eq_scalar(a, b) || bf16_gt_scalar(a, b);
 }
 
-// Vectorized implementations (Internal)
-void bf16_add_arr_scalar(bf16_t *out, const bf16_t *a, const bf16_t *b, size_t n);
-void bf16_sub_arr_scalar(bf16_t *out, const bf16_t *a, const bf16_t *b, size_t n);
-void bf16_mul_arr_scalar(bf16_t *out, const bf16_t *a, const bf16_t *b, size_t n);
-void bf16_div_arr_scalar(bf16_t *out, const bf16_t *a, const bf16_t *b, size_t n);
-
-#ifdef CALLM_ENABLE_AVX2
-#include <immintrin.h>
-typedef __m256i bf16_vec_t;
-
-void bf16_add_arr_avx2(bf16_t *out, const bf16_t *a, const bf16_t *b, size_t n);
-void bf16_sub_arr_avx2(bf16_t *out, const bf16_t *a, const bf16_t *b, size_t n);
-void bf16_mul_arr_avx2(bf16_t *out, const bf16_t *a, const bf16_t *b, size_t n);
-void bf16_div_arr_avx2(bf16_t *out, const bf16_t *a, const bf16_t *b, size_t n);
-#endif
+// Vectorized implementations (Internal) - declared in bf16_bench.h for benchmarking
+// These are defined in bf16_scalar.c and bf16_simd.c
 
 #endif  // CALLM_BF16_INTERNAL_H
