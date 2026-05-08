@@ -2,7 +2,7 @@
 #include "output.h"
 #include "query_options.h"
 
-#include "../core/safetensors.h"
+#include "../safetensors/include/callm/safetensors.h"
 
 int
 main(int argc, char **argv)

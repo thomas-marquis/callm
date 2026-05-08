@@ -1,6 +1,6 @@
 #include "model.h"
-#include "../shared/errors.h"
-#include "../shared/logging.h"
+#include "../shared/include/callm/errors.h"
+#include "../shared/include/callm/logging.h"
 #include "decoder.h"
 #include "embeddings.h"
 #include "rms_norm.h"

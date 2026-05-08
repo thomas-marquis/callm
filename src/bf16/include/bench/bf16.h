@@ -1,7 +1,7 @@
 #ifndef CALLM_BF16_BENCH_H
 #define CALLM_BF16_BENCH_H
 
-#include "bf16.h"
+#include "../callm/bf16.h"
 
 // Benchmarking API - exposes internal implementations for direct comparison
 // These functions bypass the runtime dispatch mechanism

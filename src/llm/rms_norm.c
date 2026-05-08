@@ -1,7 +1,7 @@
 #include "rms_norm.h"
 #include <stdlib.h>
 
-#include "../core/safetensors.h"
+#include "../safetensors/include/callm/safetensors.h"
 #include "maths.h"
 #include "matrix.h"
 

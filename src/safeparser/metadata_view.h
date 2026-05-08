@@ -1,8 +1,8 @@
 #ifndef CALLM_SAFEPARSER_METADATA_VIEW_H
 #define CALLM_SAFEPARSER_METADATA_VIEW_H
 
-#include "../core/safetensors.h"
-#include "../shared/errors.h"
+#include "../safetensors/include/callm/safetensors.h"
+#include "../shared/include/callm/errors.h"
 #include "query_options.h"
 #include <stddef.h>
 

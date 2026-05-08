@@ -2,8 +2,8 @@
 #define RMS_NORM_H
 
 #include "../core/matrix.h"
-#include "../core/safetensors.h"
-#include "../shared/errors.h"
+#include "../safetensors/include/callm/safetensors.h"
+#include "../shared/include/callm/errors.h"
 
 typedef struct rms_norm_t RMSNorm;
 

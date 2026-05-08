@@ -1,10 +1,10 @@
 #include "tokenizer.h"
 #include "../core/base64.h"
-#include "../core/json.h"
-#include "../core/linked_list.h"
-#include "../core/uthash.h"
-#include "../shared/errors.h"
-#include "../shared/logging.h"
+#include "../shared/include/callm/errors.h"
+#include "../shared/include/callm/json.h"
+#include "../shared/include/callm/linked_list.h"
+#include "../shared/include/callm_logging.h"
+#include "../shared/include/uthash.h"
 #include <assert.h>
 #include <fcntl.h>
 #include <jansson.h>
@@ -222,9 +222,9 @@ get_regex()
     {
         pcre2_get_error_message(errcode, buffer, sizeof(buffer));
         LOGF_ERROR("PCRE compilation failed at offset %d: %s", (int) erroffset, buffer);
-        return (struct get_regexp_res){ NULL, ERROR };
+        return (struct get_regexp_res) { NULL, ERROR };
     }
-    return (struct get_regexp_res){ re, OK };
+    return (struct get_regexp_res) { re, OK };
 }
 
 Tokenizer *

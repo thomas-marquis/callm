@@ -27,19 +27,19 @@
 #define CHECK_STATUS(status, msg, ...)                                                                                 \
     if (status != OK)                                                                                                  \
     {                                                                                                                  \
-        printf(stderr, msg, __VA_ARGS__);                                                                              \
+        fprintf(stderr, msg, __VA_ARGS__);                                                                             \
         return ERROR;                                                                                                  \
     }
 #define CHECK_STATUS_RET_NULL(status, msg, ...)                                                                        \
     if (status != OK)                                                                                                  \
     {                                                                                                                  \
-        printf(stderr, msg, __VA_ARGS__);                                                                              \
+        fprintf(stderr, msg, __VA_ARGS__);                                                                             \
         return NULL;                                                                                                   \
     }
 #define CHECK_STATUS_PANIC(status, msg, ...)                                                                           \
     if (status != OK)                                                                                                  \
     {                                                                                                                  \
-        printf(stderr, msg, __VA_ARGS__);                                                                              \
+        fprintf(stderr, msg, __VA_ARGS__);                                                                             \
         exit(EXIT_FAILURE);                                                                                            \
     }
 

@@ -1,7 +1,7 @@
 #ifndef EMBEDDINGS_H
 #define EMBEDDINGS_H
 
-#include "../core/safetensors.h"
+#include "../safetensors/include/callm/safetensors.h"
 
 typedef struct embeddings_lookup EmbeddingsLookup;
 

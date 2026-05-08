@@ -1,7 +1,7 @@
 #ifndef CALLM_TENSOR_H
 #define CALLM_TENSOR_H
 
-#include "../shared/errors.h"
+#include "../shared/include/callm/errors.h"
 
 typedef struct tensor Tensor;
 

@@ -1,9 +1,8 @@
-#include "safetensors.h"
-#include "../shared/logging.h"
-#include "bf16.h"
-#include "json.h"
-#include "safetensors.h"
-#include "uthash.h"
+#include "include/callm/safetensors.h"
+#include <callm/bf16.h>
+#include <callm/json.h>
+#include <callm/logging.h>
+#include <callm/uthash.h>
 #include <fcntl.h>
 #include <jansson.h>
 #include <stdint.h>

@@ -1,7 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include "../shared/errors.h"
+#include "../shared/include/callm/errors.h"
 #include <stddef.h>
 
 typedef enum RopeScalingType

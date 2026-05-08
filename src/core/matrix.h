@@ -1,7 +1,7 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
-#include "../shared/errors.h"
+#include "../shared/include/callm/errors.h"
 
 #define MAT_APPLY_ROW 0
 #define MAT_APPLY_COL 1

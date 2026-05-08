@@ -1,9 +1,8 @@
 #ifndef SAFETENSORS_H
 #define SAFETENSORS_H
 
-#include "../shared/errors.h"
-#include "matrix.h"
-#include <jansson.h>
+#include "../../../core/matrix.h"
+#include <callm/errors.h>
 
 enum Dtype
 {

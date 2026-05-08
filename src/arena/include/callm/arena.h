@@ -1,10 +1,10 @@
 #ifndef CALLM_ARENA_H
 #define CALLM_ARENA_H
 
+#include "../../../core/bf16.h"
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
-#include "../core/bf16.h"
 
 /**
  * @struct Arena

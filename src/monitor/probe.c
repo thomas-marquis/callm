@@ -1,6 +1,6 @@
 #include "probe.h"
-#include "../shared/errors.h"
-#include "../shared/logging.h"
+#include "../shared/include/callm/errors.h"
+#include "../shared/include/callm/logging.h"
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <stdio.h>

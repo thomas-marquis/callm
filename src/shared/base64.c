@@ -1,6 +1,6 @@
-#include "base64.h"
-#include "../shared/errors.h"
-#include "../shared/logging.h"
+#include "include/callm/base64.h"
+#include "include/callm/errors.h"
+#include "include/callm/logging.h"
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>

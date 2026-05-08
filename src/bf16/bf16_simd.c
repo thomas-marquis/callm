@@ -1,5 +1,5 @@
-#include "bf16.h"
 #include "bf16_internal.h"
+#include "include/callm/bf16.h"
 
 #ifdef CALLM_ENABLE_AVX2
 #include <immintrin.h>
@@ -49,21 +49,21 @@ bf16_add_vec16(__m256i a, __m256i b)
     __m128i a_hi = _mm256_extracti128_si256(a, 1);
     __m128i b_lo = _mm256_castsi256_si128(b);
     __m128i b_hi = _mm256_extracti128_si256(b, 1);
-    
+
     // Convert bf16 to float
     __m256 fa_lo = bf16_vec_to_float_vec(a_lo);
     __m256 fa_hi = bf16_vec_to_float_vec(a_hi);
     __m256 fb_lo = bf16_vec_to_float_vec(b_lo);
     __m256 fb_hi = bf16_vec_to_float_vec(b_hi);
-    
+
     // Add
     __m256 fr_lo = _mm256_add_ps(fa_lo, fb_lo);
     __m256 fr_hi = _mm256_add_ps(fa_hi, fb_hi);
-    
+
     // Convert back to bf16
     __m128i out_lo = float_vec_to_bf16_vec(fr_lo);
     __m128i out_hi = float_vec_to_bf16_vec(fr_hi);
-    
+
     // Combine into 256-bit result
     return _mm256_setr_m128i(out_lo, out_hi);
 }
@@ -75,18 +75,18 @@ bf16_sub_vec16(__m256i a, __m256i b)
     __m128i a_hi = _mm256_extracti128_si256(a, 1);
     __m128i b_lo = _mm256_castsi256_si128(b);
     __m128i b_hi = _mm256_extracti128_si256(b, 1);
-    
+
     __m256 fa_lo = bf16_vec_to_float_vec(a_lo);
     __m256 fa_hi = bf16_vec_to_float_vec(a_hi);
     __m256 fb_lo = bf16_vec_to_float_vec(b_lo);
     __m256 fb_hi = bf16_vec_to_float_vec(b_hi);
-    
+
     __m256 fr_lo = _mm256_sub_ps(fa_lo, fb_lo);
     __m256 fr_hi = _mm256_sub_ps(fa_hi, fb_hi);
-    
+
     __m128i out_lo = float_vec_to_bf16_vec(fr_lo);
     __m128i out_hi = float_vec_to_bf16_vec(fr_hi);
-    
+
     return _mm256_setr_m128i(out_lo, out_hi);
 }
 
@@ -97,18 +97,18 @@ bf16_mul_vec16(__m256i a, __m256i b)
     __m128i a_hi = _mm256_extracti128_si256(a, 1);
     __m128i b_lo = _mm256_castsi256_si128(b);
     __m128i b_hi = _mm256_extracti128_si256(b, 1);
-    
+
     __m256 fa_lo = bf16_vec_to_float_vec(a_lo);
     __m256 fa_hi = bf16_vec_to_float_vec(a_hi);
     __m256 fb_lo = bf16_vec_to_float_vec(b_lo);
     __m256 fb_hi = bf16_vec_to_float_vec(b_hi);
-    
+
     __m256 fr_lo = _mm256_mul_ps(fa_lo, fb_lo);
     __m256 fr_hi = _mm256_mul_ps(fa_hi, fb_hi);
-    
+
     __m128i out_lo = float_vec_to_bf16_vec(fr_lo);
     __m128i out_hi = float_vec_to_bf16_vec(fr_hi);
-    
+
     return _mm256_setr_m128i(out_lo, out_hi);
 }
 
@@ -119,18 +119,18 @@ bf16_div_vec16(__m256i a, __m256i b)
     __m128i a_hi = _mm256_extracti128_si256(a, 1);
     __m128i b_lo = _mm256_castsi256_si128(b);
     __m128i b_hi = _mm256_extracti128_si256(b, 1);
-    
+
     __m256 fa_lo = bf16_vec_to_float_vec(a_lo);
     __m256 fa_hi = bf16_vec_to_float_vec(a_hi);
     __m256 fb_lo = bf16_vec_to_float_vec(b_lo);
     __m256 fb_hi = bf16_vec_to_float_vec(b_hi);
-    
+
     __m256 fr_lo = _mm256_div_ps(fa_lo, fb_lo);
     __m256 fr_hi = _mm256_div_ps(fa_hi, fb_hi);
-    
+
     __m128i out_lo = float_vec_to_bf16_vec(fr_lo);
     __m128i out_hi = float_vec_to_bf16_vec(fr_hi);
-    
+
     return _mm256_setr_m128i(out_lo, out_hi);
 }
 

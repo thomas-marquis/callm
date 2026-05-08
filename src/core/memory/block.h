@@ -1,9 +1,9 @@
 #ifndef CALLM_BLOCK_H
 #define CALLM_BLOCK_H
 
+#include "../../shared/include/callm/errors.h"
+#include "../../shared/include/callm/utils.h"
 #include <stddef.h>
-#include "../../shared/errors.h"
-#include "../../shared/utils.h"
 
 #define NEW_STATIC_COORDS(varname, ...) \
     size_t varname[] = {__VA_ARGS__}; \

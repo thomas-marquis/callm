@@ -1,16 +1,26 @@
 #include "unity.h"
-#include "../../../src/arena/arena.h"
+#include <callm/arena.h>
 
-void setUp(void) {}
-void tearDown(void) {}
+void
+setUp(void)
+{
+}
+void
+tearDown(void)
+{
+}
 
-void test_arena_config_single(void) {
+void
+test_arena_config_single(void)
+{
     Arena *arena = Arena_new();
     TEST_ASSERT_EQUAL_INT(Arena_OK, Arena_config_int_block(arena, "test", 10, 0));
     Arena_free(arena);
 }
 
-void test_arena_config_multiple(void) {
+void
+test_arena_config_multiple(void)
+{
     Arena *arena = Arena_new();
     TEST_ASSERT_EQUAL_INT(Arena_OK, Arena_config_int_block(arena, "int", 10, 0));
     TEST_ASSERT_EQUAL_INT(Arena_OK, Arena_config_float_block(arena, "float", 20, 0));
@@ -18,14 +28,18 @@ void test_arena_config_multiple(void) {
     Arena_free(arena);
 }
 
-void test_arena_config_duplicate_name(void) {
+void
+test_arena_config_duplicate_name(void)
+{
     Arena *arena = Arena_new();
     TEST_ASSERT_EQUAL_INT(Arena_OK, Arena_config_int_block(arena, "test", 10, 0));
     TEST_ASSERT_EQUAL_INT(Arena_ERROR, Arena_config_float_block(arena, "test", 20, 0));
     Arena_free(arena);
 }
 
-void test_arena_config_after_allocate(void) {
+void
+test_arena_config_after_allocate(void)
+{
     Arena *arena = Arena_new();
     Arena_config_int_block(arena, "test", 10, 0);
     Arena_allocate(arena);
@@ -33,7 +47,9 @@ void test_arena_config_after_allocate(void) {
     Arena_free(arena);
 }
 
-int main(void) {
+int
+main(void)
+{
     UNITY_BEGIN();
     RUN_TEST(test_arena_config_single);
     RUN_TEST(test_arena_config_multiple);

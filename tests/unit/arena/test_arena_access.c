@@ -1,11 +1,19 @@
 #include "unity.h"
-#include "../../../src/arena/arena.h"
+#include <callm/arena.h>
 #include <string.h>
 
-void setUp(void) {}
-void tearDown(void) {}
+void
+setUp(void)
+{
+}
+void
+tearDown(void)
+{
+}
 
-void test_arena_access_basic(void) {
+void
+test_arena_access_basic(void)
+{
     Arena *arena = Arena_new();
     Arena_config_int_block(arena, "int", 10, 0);
     Arena_config_float_block(arena, "float", 20, 0);
@@ -21,7 +29,9 @@ void test_arena_access_basic(void) {
     Arena_free(arena);
 }
 
-void test_arena_access_before_allocate(void) {
+void
+test_arena_access_before_allocate(void)
+{
     Arena *arena = Arena_new();
     Arena_config_int_block(arena, "int", 10, 0);
     TEST_ASSERT_NULL(Arena_get_block(arena, "int"));
@@ -29,7 +39,9 @@ void test_arena_access_before_allocate(void) {
     Arena_free(arena);
 }
 
-void test_arena_access_invalid_name(void) {
+void
+test_arena_access_invalid_name(void)
+{
     Arena *arena = Arena_new();
     Arena_config_int_block(arena, "int", 10, 0);
     Arena_allocate(arena);
@@ -38,7 +50,9 @@ void test_arena_access_invalid_name(void) {
     Arena_free(arena);
 }
 
-int main(void) {
+int
+main(void)
+{
     UNITY_BEGIN();
     RUN_TEST(test_arena_access_basic);
     RUN_TEST(test_arena_access_before_allocate);

@@ -1,8 +1,8 @@
 #include "attention.h"
 #include "../core/matrix.h"
 #include "../monitor/probe.h"
-#include "../shared/errors.h"
-#include "../shared/logging.h"
+#include "../shared/include/callm/errors.h"
+#include "../shared/include/callm/logging.h"
 
 struct attention
 {

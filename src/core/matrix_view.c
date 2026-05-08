@@ -1,5 +1,5 @@
 #include "matrix_view.h"
-#include "../shared/errors.h"
+#include "../shared/include/callm/errors.h"
 #include "matrix.h"
 
 struct matrix_view

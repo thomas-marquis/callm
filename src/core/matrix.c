@@ -1,5 +1,5 @@
 #include "matrix.h"
-#include "../shared/logging.h"
+#include "../shared/include/callm/logging.h"
 #include <immintrin.h>
 #include <jansson.h>
 #include <stdio.h>

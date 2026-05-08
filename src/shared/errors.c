@@ -1,5 +1,5 @@
-#include "errors.h"
-#include "logging.h"
+#include "include/callm/errors.h"
+#include "include/callm/logging.h"
 
 char *
 CallmStatusCode_string(CallmStatusCode code)

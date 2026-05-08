@@ -1,7 +1,7 @@
 #include "mlp.h"
 #include "../core/matrix.h"
-#include "../shared/errors.h"
-#include "../shared/logging.h"
+#include "../shared/include/callm/errors.h"
+#include "../shared/include/callm/logging.h"
 #include <stdio.h>
 #include <stdlib.h>
 

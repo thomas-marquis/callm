@@ -1,7 +1,7 @@
 #ifndef CALLM_BF16_INTERNAL_H
 #define CALLM_BF16_INTERNAL_H
 
-#include "bf16.h"
+#include "include/callm/bf16.h"
 
 // Scalar implementations
 static inline bf16_t

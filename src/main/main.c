@@ -1,6 +1,6 @@
 #include "../core/config.h"
-#include "../core/safetensors.h"
-#include "../shared/logging.h"
+#include "../safetensors/include/callm/safetensors.h"
+#include "../shared/include/callm/logging.h"
 #include "../tokenizer/tokenizer.h"
 #include "matrix.h"
 #include "model.h"

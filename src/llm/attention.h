@@ -3,7 +3,7 @@
 
 #include "../core/config.h"
 #include "../core/matrix.h"
-#include "../core/safetensors.h"
+#include "../safetensors/include/callm/safetensors.h"
 
 typedef struct attention Attention;
 

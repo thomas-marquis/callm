@@ -3,8 +3,8 @@
 
 #include "../core/config.h"
 #include "../core/matrix.h"
-#include "../core/safetensors.h"
-#include "../shared/errors.h"
+#include "../safetensors/include/callm/safetensors.h"
+#include "../shared/include/callm/errors.h"
 
 typedef struct decoder_t Decoder;
 

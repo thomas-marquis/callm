@@ -1,8 +1,8 @@
 #ifndef CALLM_SAFEPARSER_QUERY_OPTIONS_H
 #define CALLM_SAFEPARSER_QUERY_OPTIONS_H
 
-#include "../core/safetensors.h"
-#include "../shared/errors.h"
+#include "../safetensors/include/callm/safetensors.h"
+#include "../shared/include/callm/errors.h"
 #include <stddef.h>
 
 typedef enum

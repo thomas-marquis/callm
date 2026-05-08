@@ -1,7 +1,7 @@
 // bench_bf16.c
 #define _POSIX_C_SOURCE 199309L
-#include <bf16.h>
-#include <bf16_bench.h>
+#include <bench/bf16.h>
+#include <callm/bf16.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>

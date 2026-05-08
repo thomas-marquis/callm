@@ -3,7 +3,7 @@
 
 #include "../core/config.h"
 #include "../core/matrix.h"
-#include "../shared/errors.h"
+#include "../shared/include/callm/errors.h"
 
 typedef struct rotary_embedding_t RotaryEmbedding;
 

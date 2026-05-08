@@ -2,7 +2,7 @@
 #define TOKENIZER_H
 #define PCRE2_CODE_UNIT_WIDTH 8
 
-#include "../shared/errors.h"
+#include "../shared/include/callm/errors.h"
 #include <pcre2.h>
 
 typedef struct Tokenizer Tokenizer;

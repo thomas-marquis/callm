@@ -1,10 +1,18 @@
+#include <callm/bf16.h>
 #include <unity.h>
-#include <bf16.h>
 
-void setUp(void) {}
-void tearDown(void) {}
+void
+setUp(void)
+{
+}
+void
+tearDown(void)
+{
+}
 
-void test_bf16_is_special(void) {
+void
+test_bf16_is_special(void)
+{
     TEST_ASSERT_TRUE(bf16_is_zero(BF16_ZERO));
     TEST_ASSERT_TRUE(bf16_is_zero(BF16_NEG_ZERO));
     TEST_ASSERT_FALSE(bf16_is_zero(bf16_from_bits(0x0001)));
@@ -22,7 +30,9 @@ void test_bf16_is_special(void) {
     TEST_ASSERT_FALSE(bf16_is_neg(BF16_ZERO));
 }
 
-void test_bf16_add_basic(void) {
+void
+test_bf16_add_basic(void)
+{
     // 1.0 + 1.0 = 2.0
     // 1.0 in bf16 is 0x3F80
     // 2.0 in bf16 is 0x4000
@@ -39,13 +49,17 @@ void test_bf16_add_basic(void) {
     TEST_ASSERT_EQUAL_UINT16(0x3FC0, bf16_to_bits(res));
 }
 
-void test_bf16_add_special(void) {
+void
+test_bf16_add_special(void)
+{
     TEST_ASSERT_TRUE(bf16_is_nan(bf16_add(BF16_NAN, bf16_from_bits(0x3F80))));
     TEST_ASSERT_EQUAL_UINT16(BF16_INF, bf16_to_bits(bf16_add(BF16_INF, bf16_from_bits(0x3F80))));
     TEST_ASSERT_TRUE(bf16_is_nan(bf16_add(BF16_INF, BF16_NEG_INF)));
 }
 
-void test_bf16_mul_basic(void) {
+void
+test_bf16_mul_basic(void)
+{
     // 2.0 * 1.5 = 3.0
     // 2.0: 0x4000
     // 1.5: 0x3FC0
@@ -56,7 +70,9 @@ void test_bf16_mul_basic(void) {
     TEST_ASSERT_EQUAL_UINT16(0x4040, bf16_to_bits(res));
 }
 
-void test_bf16_div_basic(void) {
+void
+test_bf16_div_basic(void)
+{
     // 3.0 / 2.0 = 1.5
     // 3.0: 0x4040
     // 2.0: 0x4000
@@ -67,13 +83,17 @@ void test_bf16_div_basic(void) {
     TEST_ASSERT_EQUAL_UINT16(0x3FC0, bf16_to_bits(res));
 }
 
-void test_bf16_div_special(void) {
+void
+test_bf16_div_special(void)
+{
     TEST_ASSERT_EQUAL_UINT16(BF16_INF, bf16_to_bits(bf16_div(bf16_from_bits(0x3F80), BF16_ZERO)));
     TEST_ASSERT_TRUE(bf16_is_nan(bf16_div(BF16_ZERO, BF16_ZERO)));
     TEST_ASSERT_EQUAL_UINT16(BF16_ZERO, bf16_to_bits(bf16_div(bf16_from_bits(0x3F80), BF16_INF)));
 }
 
-int main(void) {
+int
+main(void)
+{
     UNITY_BEGIN();
     RUN_TEST(test_bf16_is_special);
     RUN_TEST(test_bf16_add_basic);

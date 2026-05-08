@@ -4,16 +4,18 @@
 
 ## General considerations
 
-- Implement a C static library named `linalg` that exposes and implements linear algebra operations.
+- Implement a C static library named `callm_linalg` that exposes and implements linear algebra operations.
 - This library MUST rely on the existing arena library for memory management (no direct malloc)
 - This library MUST rely on the existing bf16 library to manage the bf16 type. If an operation is missing from this
   library, please mention it
-- This library MUST be integrated to the existing safetensors library for all IO operations.
+- This library doesn't handle IO operations, it gona be used later by the safetensors library, but this is out of scope
+  for now.
 - Each function of the library linalg must be type-specific. Thus, they must contain the type name in their name. E.g:
   some_operation_bf16.
 - For now, only the bf16 type must be supported. Nothing else.
 - This library MUST be model agnostic. It must not contains any model-specific logic or assumptions.
-- The library MUST use an OOP approach for naming: function names must start with the object they operate on (e.g., Tensor_matmul, Matrix_transpose, Vector_add).
+- The library MUST use an OOP approach for naming: function names must start with the object they operate on (e.g.,
+  Tensor_matmul, Matrix_transpose, Vector_add).
 - Except bf16 and arena, no other third party library is allowed.
 - This library MUST be able to work on a single CPU. Levreage all possible techniques to achieve this (parallelism,
   pipelining, threads, etc).
@@ -164,16 +166,7 @@ Here’s a **checklist of all mathematical operations** you’ll need to impleme
       The linalg library is a completely new, standalone implementation. Any existing float-based Matrix operations are
       irrelevant for this bf16-focused library.
 
-5. **Safetensors integration**: The human spec states "This library MUST be integrated to the existing safetensors
-   library for all IO operations". How should this integration work?
-    - **Answer**: The linalg library will NOT implement any file I/O operations directly. Instead:
-        - The safetensors library already handles loading bf16 tensor data from safetensors files
-        - Linalg will receive tensor data (as bf16 pointers) from safetensors
-        - Linalg will perform computations on this data using Arena-allocated memory
-        - Any results that need to be saved will be passed back to safetensors for serialization
-        - Linalg must be designed to work seamlessly with safetensors' memory layout and bf16 type
-
-6. **Model agnostic requirement**: The human spec states "This library MUST be model agnostic". What does this mean for
+5. **Model agnostic requirement**: The human spec states "This library MUST be model agnostic". What does this mean for
    the implementation?
     - **Answer**: The linalg library must NOT contain any model-specific logic, assumptions, or hardcoded values. This
       means:
@@ -183,18 +176,21 @@ Here’s a **checklist of all mathematical operations** you’ll need to impleme
         - All operations must be generic and work with any tensor shapes that are valid for the operation
         - The library provides building blocks that can be composed to implement any model
 
-7. **OOP naming convention**: The human spec states "function name must start by the object they are related to". How should this be applied consistently?
-   - **Answer**: All functions must follow the pattern `<Object>_<operation>` where:
-     - `<Object>` is the primary data structure the function operates on (Tensor, Matrix, Vector, KVCache, etc.)
-     - `<operation>` describes the action being performed
-     - For type-specific functions, the type suffix (`_bf16`) comes at the end: `Tensor_matmul_bf16`, `Matrix_transpose_bf16`, etc.
-     - This ensures consistent, predictable naming that groups related operations together
+7. **OOP naming convention**: The human spec states "function name must start by the object they are related to". How
+   should this be applied consistently?
+    - **Answer**: All functions must follow the pattern `<Object>_<operation>` where:
+        - `<Object>` is the primary data structure the function operates on (Tensor, Matrix, Vector, KVCache, etc.)
+        - `<operation>` describes the action being performed
+        - For type-specific functions, the type suffix (`_bf16`) comes at the end: `Tensor_matmul_bf16`,
+          `Matrix_transpose_bf16`, etc.
+        - This ensures consistent, predictable naming that groups related operations together
 
 ## Functional specification
 
 ### Feature goal
 
-Create a new standalone static library named `linalg` that provides linear algebra operations specifically for the bf16
+Create a new standalone static library named `callm_linalg` that provides linear algebra operations specifically for the
+bf16
 type. This library will serve as the foundation for all matrix and vector computations in the CaLLM runtime, replacing
 the existing float-based matrix operations with bf16-native implementations.
 
@@ -221,34 +217,21 @@ the existing float-based matrix operations with bf16-native implementations.
       arena, no other third party library is allowed")
     - Direct memory allocation (must use Arena)
     - Type support other than bf16 (for now)
-    - Direct file I/O operations (delegated to safetensors library)
-    - Model loading/saving (handled via safetensors integration)
+    - Direct file I/O operations (delegated later to safetensors library)
+    - Model loading/saving (handled later via safetensors integration)
     - Tokenizer integration
 
 ### Library characteristics
 
-- **Consistent naming convention**: All functions must follow OOP-style naming: `<Object>_<operation>_<type>`, e.g., `Tensor_matmul_bf16`, `Matrix_transpose_bf16`, `Vector_add_bf16`
+- **Consistent naming convention**: All functions must follow OOP-style naming: `<Object>_<operation>_<type>`, e.g.,
+  `Tensor_matmul_bf16`, `Matrix_transpose_bf16`, `Vector_add_bf16`
 - **Memory management**: All memory must be allocated through the Arena library
 - **No direct allocation**: No `malloc`, `calloc`, `mmap`, or `free` calls allowed
 - **bf16 dependency**: Must use the existing bf16 library for bf16 type and basic operations
-- **Safetensors integration**: Must integrate with the existing safetensors library for all tensor I/O operations
+- **Safetensors integration**: Will be integrated later to the existing safetensors library for all tensor I/O
+  operations, but out of scope for this specification.
 - **Model agnostic**: Must NOT contain any model-specific logic, assumptions, or hardcoded values
 - **Thread safety**: Functions should be thread-safe where applicable (no global state)
-
-### Safetensors integration details
-
-The linalg library does NOT handle file I/O directly. Instead, it integrates with the existing safetensors library:
-
-- **Input flow**: Safetensors library loads model weights from `.safetensors` files and provides bf16 data pointers.
-  Linalg receives these pointers and performs computations on them.
-- **Memory compatibility**: Linalg must work with the memory layout provided by safetensors. This means:
-    - Accepting bf16 pointers from safetensors-loaded tensors
-    - Supporting the same row-major (C-contiguous) layout used by safetensors
-    - Not assuming ownership of memory provided by safetensors
-- **Output flow**: When linalg computes results that need persistence (e.g., model weights after transformations), it
-  provides the data to safetensors for serialization.
-- **Tensor metadata**: Linalg functions that create new tensors must be compatible with safetensors' tensor metadata (
-  dims, dtype, shape).
 
 ### Model agnostic design
 
@@ -675,11 +658,11 @@ src/linalg/
 ### Build requirements
 
 - Compile as a static library (`liblinalg.a`)
-- Dependencies: `arena`, `bf16`, `safetensors`, standard C library (`math.h`)
+- Dependencies: `callm_arena`, `callm_bf16`, and  `callm_shared` standard C library (`math.h`)
 - C99 or later
 - No external dependencies (no BLAS, no OpenBLAS, no Intel MKL)
 - Must be buildable with CMake
-- Link against safetensors library for tensor I/O operations
+- Must not depend on safetensors library
 
 ### Performance considerations
 
@@ -785,11 +768,14 @@ Given the CPU-only constraint and bf16 type, performance optimizations must incl
    GPU". All operations must be CPU-bound and optimized for single-CPU performance.
 
 2. **No third-party libraries**: The General considerations state "Except bf16 and arena, no other third party library
-   is allowed". Additionally, safetensors is explicitly required for I/O operations per the General considerations. We
-   will NOT use BLAS, OpenBLAS, Intel MKL, or any other external linear algebra library. All linalg computational
-   operations will be implemented from scratch, while I/O operations delegate to safetensors.
+   is allowed". We will NOT use BLAS, OpenBLAS, Intel MKL, or any other external linear algebra library. All linalg
+   computational
+   operations will be implemented from scratch, no I/O operations needed.
 
-3. **OOP naming convention**: Per the General considerations, "function name must start by the object they are related to". All functions follow the pattern `<Object>_<operation>_<type>` (e.g., `Tensor_matmul_bf16`, `KVCache_update_bf16`, `Matrix_transpose_bf16`). This ensures a consistent, predictable API where related operations are grouped by their primary data structure.
+3. **OOP naming convention**: Per the General considerations, "function name must start by the object they are related
+   to". All functions follow the pattern `<Object>_<operation>_<type>` (e.g., `Tensor_matmul_bf16`,
+   `KVCache_update_bf16`, `Matrix_transpose_bf16`). This ensures a consistent, predictable API where related operations
+   are grouped by their primary data structure.
 
 4. **bf16-only for now**: The library will only support bf16 type. All functions are type-specific with `_bf16` suffix.
 
@@ -809,25 +795,18 @@ Given the CPU-only constraint and bf16 type, performance optimizations must incl
    completely NEW, standalone implementation. We must NOT use, reference, or modify any code in `src/llm/`. The existing
    float-based Matrix operations are irrelevant for this bf16-focused library.
 
-9. **Safetensors integration**: Per the General considerations, "This library MUST be integrated to the existing
-   safetensors library for all IO operations". Linalg delegates all tensor I/O to safetensors:
-    - Linalg receives bf16 tensor data from safetensors (which handles file loading)
-    - Linalg performs computations on this data
-    - Linalg returns results that safetensors can serialize
-    - Linalg must be compatible with safetensors' memory layout (row-major, bf16)
-
-10. **Model agnostic**: Per the General considerations, "This library MUST be model agnostic". The library will:
+9. **Model agnostic**: Per the General considerations, "This library MUST be model agnostic". The library will:
     - Not contain any hardcoded tensor dimensions or model-specific constants
     - Not make assumptions about model architecture (transformer, MoE, RNN, etc.)
     - Provide only generic, composable linear algebra operations
     - Allow any valid tensor shapes for operations
 
-11. **Library organization**: The library is organized by operation category (as shown in the structure above) with a
+10. **Library organization**: The library is organized by operation category (as shown in the structure above) with a
     flat public API in `linalg.h`.
 
-12. **Testing**: Each operation category will have corresponding unit tests. Tests will verify correctness against
+11. **Testing**: Each operation category will have corresponding unit tests. Tests will verify correctness against
     float32 reference implementations.
 
-13. **Missing bf16 operations**: The operations listed in the function tables require bf16 mathematical functions not in
+12. **Missing bf16 operations**: The operations listed in the function tables require bf16 mathematical functions not in
     the current bf16 library: sqrt, exp, log, pow, tanh, sin, cos. These will be implemented within linalg as private
     helpers using float32 conversion.
