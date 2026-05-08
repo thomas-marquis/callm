@@ -1,6 +1,8 @@
+// bench_bf16.c
 #define _POSIX_C_SOURCE 199309L
 #include <bf16.h>
 #include <bf16_bench.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -29,14 +31,47 @@ get_time()
     return ts.tv_sec + ts.tv_nsec * 1e-9;
 }
 
-void
-benchmark_bf16_add()
+typedef void (*bf16_arr_func)(bf16_t *out, const bf16_t *a, const bf16_t *b, size_t n);
+
+typedef struct
+{
+    const char *name;
+    bf16_arr_func scalar_func;
+#ifdef CALLM_ENABLE_AVX2
+    bf16_arr_func simd_func;
+#endif
+} bf16_bench_op;
+
+static const bf16_bench_op bench_ops[] = { { "add", bf16_add_arr_scalar,
+#ifdef CALLM_ENABLE_AVX2
+                                             bf16_add_arr_avx2
+#endif
+                                           },
+                                           { "sub", bf16_sub_arr_scalar,
+#ifdef CALLM_ENABLE_AVX2
+                                             bf16_sub_arr_avx2
+#endif
+                                           },
+                                           { "mul", bf16_mul_arr_scalar,
+#ifdef CALLM_ENABLE_AVX2
+                                             bf16_mul_arr_avx2
+#endif
+                                           },
+                                           { "div", bf16_div_arr_scalar,
+#ifdef CALLM_ENABLE_AVX2
+                                             bf16_div_arr_avx2
+#endif
+                                           } };
+
+static void
+benchmark_bf16_op(const bf16_bench_op *op)
 {
     bf16_t *a = aligned_alloc(32, N * sizeof(bf16_t));
     bf16_t *b = aligned_alloc(32, N * sizeof(bf16_t));
     bf16_t *out_simd = aligned_alloc(32, N * sizeof(bf16_t));
     bf16_t *out_scalar = aligned_alloc(32, N * sizeof(bf16_t));
 
+    // Initialize arrays with non-zero values
     for (int i = 0; i < N; i++)
     {
         a[i] = bf16_from_bits(0x3F80);  // 1.0
@@ -47,7 +82,7 @@ benchmark_bf16_add()
     double start_scalar = get_time();
     for (int it = 0; it < ITER; it++)
     {
-        bf16_add_arr_scalar(out_scalar, a, b, N);
+        op->scalar_func(out_scalar, a, b, N);
     }
     double end_scalar = get_time();
     double avg_time_scalar = (end_scalar - start_scalar) / ITER;
@@ -59,15 +94,16 @@ benchmark_bf16_add()
 #ifdef CALLM_ENABLE_AVX2
     if (bf16_cpu_has_avx2_cached())
     {
+        // Warm-up
         for (int it = 0; it < 2; it++)
         {
-            bf16_add_arr_avx2(out_simd, a, b, N);
+            op->simd_func(out_simd, a, b, N);
         }
 
         double start_simd = get_time();
         for (int it = 0; it < ITER; it++)
         {
-            bf16_add_arr_avx2(out_simd, a, b, N);
+            op->simd_func(out_simd, a, b, N);
         }
         double end_simd = get_time();
         avg_time_simd = (end_simd - start_simd) / ITER;
@@ -81,8 +117,8 @@ benchmark_bf16_add()
 #ifdef CALLM_ENABLE_AVX2
         if (simd_ran && out_simd[i] != out_scalar[i])
         {
-            fprintf(stderr, "Error: SIMD and scalar results differ at index %d (simd=0x%04X, scalar=0x%04X)\n", i,
-                    bf16_to_bits(out_simd[i]), bf16_to_bits(out_scalar[i]));
+            fprintf(stderr, "Error: SIMD and scalar results differ for %s at index %d (simd=0x%04X, scalar=0x%04X)\n",
+                    op->name, i, bf16_to_bits(out_simd[i]), bf16_to_bits(out_scalar[i]));
             free(a);
             free(b);
             free(out_simd);
@@ -95,7 +131,7 @@ benchmark_bf16_add()
     }
 
     // Print results
-    printf("Benchmarking bf16_add_arr with N=%d, ITER=%d\n", N, ITER);
+    printf("Benchmarking bf16_%s_arr with N=%d, ITER=%d\n", op->name, N, ITER);
 
     printf("Scalar:\n");
     printf("  Average time: %.6f s\n", avg_time_scalar);
@@ -113,7 +149,7 @@ benchmark_bf16_add()
 
         if (speedup <= 1.0)
         {
-            fprintf(stderr, "Error: SIMD is NOT faster than scalar (speedup: %.2fx)\n", speedup);
+            fprintf(stderr, "Error: SIMD is NOT faster than scalar for %s (speedup: %.2fx)\n", op->name, speedup);
             free(a);
             free(b);
             free(out_simd);
@@ -138,6 +174,10 @@ benchmark_bf16_add()
 int
 main()
 {
-    benchmark_bf16_add();
+    for (size_t i = 0; i < sizeof(bench_ops) / sizeof(bench_ops[0]); i++)
+    {
+        benchmark_bf16_op(&bench_ops[i]);
+        printf("\n");
+    }
     return 0;
 }
